@@ -1,0 +1,14 @@
+{
+  "name": "movieswithavi",
+  "type": "module",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "start": "serve dist -l ${PORT:-3000}"
+  },
+  "dependencies": {
+    "astro": "^5.1.0",
+    "serve": "^14.2.0"
+  }
+}
