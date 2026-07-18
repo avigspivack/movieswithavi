@@ -5,7 +5,7 @@ const reviews = await getCollection('reviews');
 const cats = [...new Set(reviews.flatMap(r => r.data.categories))].sort();
 ---
 <Base title="Browse the library — Movies with Avi">
-  <style>
+  <style is:global>
     .head { max-width: 1080px; margin: 0 auto; padding: 26px 22px 8px; }
     .head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); letter-spacing: -.02em; }
     .head p { color: var(--ink-soft); margin-top: 4px; }
@@ -18,7 +18,7 @@ const cats = [...new Set(reviews.flatMap(r => r.data.categories))].sort();
     .chips::-webkit-scrollbar { display: none; }
     .count { font-family: var(--font-mono); font-size: .75rem; color: var(--ink-soft); padding-top: 10px; }
     .grid { max-width: 1080px; margin: 0 auto; padding: 4px 22px 70px; display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 16px; }
-    .empty { grid-column: 1/-1; text-align: center; color: var(--ink-soft); padding: 60px 0; }
+    .unused-empty { grid-column: 1/-1; text-align: center; color: var(--ink-soft); padding: 60px 0; }
     .empty a { font-weight: 600; }
   </style>
 
@@ -74,7 +74,7 @@ const cats = [...new Set(reviews.flatMap(r => r.data.categories))].sort();
             <p class="one">${p.oneLine || ''}</p>
           </div>
         </a>`).join('')
-        : `<div class="empty">Nothing matches — yet. Try fewer words, or <a href="/#tonight">let me pick for you</a>.</div>`;
+        : `<div class="browse-empty">Nothing matches — yet. Try fewer words, or <a href="/#tonight">let me pick for you</a>.</div>`;
     }
 
     fetch('/library.json').then(r => r.json()).then(d => { LIB = d; render(); });
