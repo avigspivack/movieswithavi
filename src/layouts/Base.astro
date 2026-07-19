@@ -29,5 +29,9 @@ const { title = 'Movies with Avi', dark = false } = Astro.props;
     <span class="mono">Movies with Avi · est. on Instagram, now playing everywhere</span><br/>
     <a href="https://www.instagram.com/movieswithavi/" rel="noopener">Instagram</a>
   </footer>
+  <script>
+    navigator.sendBeacon?.('/api/track', new Blob([JSON.stringify({ type: 'pageview', path: location.pathname })], { type: 'application/json' }))
+      || fetch('/api/track', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ type: 'pageview', path: location.pathname }), keepalive: true }).catch(() => {});
+  </script>
 </body>
 </html>

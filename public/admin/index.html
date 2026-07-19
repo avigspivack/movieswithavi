@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Projection booth — Movies with Avi</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Spline+Sans+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root { --red:#C0392E; --dark:#1B1214; --cream:#F6EFE4; --ink:#2A1E1B; --soft:#6B5A52; --butter:#F2B838; }
+* { box-sizing: border-box; margin: 0; }
+body { background: var(--cream); color: var(--ink); font: 15px/1.5 "Bricolage Grotesque", sans-serif; padding: 26px 20px 60px; }
+.wrap { max-width: 960px; margin: 0 auto; }
+h1 { font-size: 1.7rem; font-weight: 800; letter-spacing: -.01em; }
+h1 span { color: var(--red); }
+.sub { color: var(--soft); margin: 4px 0 22px; }
+.gate { max-width: 380px; margin: 60px auto; text-align: center; }
+.gate input { width: 100%; padding: 12px 14px; border-radius: 10px; border: 2px solid rgba(42,30,27,.2); font: inherit; margin: 14px 0 10px; }
+button { background: var(--red); color: #fff; border: none; border-radius: 10px; padding: 11px 20px; font: 700 .95rem "Bricolage Grotesque"; cursor: pointer; }
+.range { display: flex; gap: 8px; margin-bottom: 18px; }
+.range button { background: #fff; color: var(--soft); border: 1.5px solid rgba(42,30,27,.18); }
+.range button.on { background: var(--red); color: #fff; border-color: var(--red); }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 22px; }
+.kpi { background: #fff; border-radius: 12px; padding: 16px; border: 1px solid rgba(42,30,27,.08); }
+.kpi .n { font-family: "Spline Sans Mono"; font-weight: 600; font-size: 1.7rem; }
+.kpi .l { font-size: .78rem; color: var(--soft); letter-spacing: .06em; text-transform: uppercase; }
+.panel { background: #fff; border-radius: 14px; padding: 18px; border: 1px solid rgba(42,30,27,.08); margin-bottom: 18px; }
+.panel h2 { font-size: 1.02rem; margin-bottom: 12px; }
+#chart { width: 100%; height: 180px; }
+.bars { display: flex; align-items: flex-end; gap: 2px; height: 150px; }
+.bar { flex: 1; background: var(--red); border-radius: 3px 3px 0 0; min-height: 2px; position: relative; }
+.bar .v { position: absolute; inset: 0; background: var(--butter); border-radius: 3px 3px 0 0; }
+.axis { display: flex; justify-content: space-between; font: .68rem "Spline Sans Mono"; color: var(--soft); margin-top: 6px; }
+table { width: 100%; border-collapse: collapse; }
+td { padding: 7px 4px; border-top: 1px solid rgba(42,30,27,.07); }
+td.n { font-family: "Spline Sans Mono"; text-align: right; color: var(--soft); white-space: nowrap; }
+td a { color: var(--red); text-decoration: none; font-weight: 600; }
+.legend { font: .72rem "Spline Sans Mono"; color: var(--soft); margin-top: 8px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; margin-right: 4px; }
+.err { color: var(--red); font-weight: 600; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Projection <span>booth</span></h1>
+  <p class="sub">Who's watching the watcher — traffic, searches, and favorites.</p>
+
+  <div class="gate" id="gate">
+    <p>Enter the admin key to roll the reels.</p>
+    <input id="key" type="password" placeholder="Admin key" />
+    <button id="go">Open the booth</button>
+    <p class="err" id="err"></p>
+  </div>
+
+  <div id="dash" style="display:none">
+    <div class="range" id="range">
+      <button data-d="7">7 days</button>
+      <button data-d="30" class="on">30 days</button>
+      <button data-d="90">90 days</button>
+      <button data-d="365">Year</button>
+    </div>
+    <div class="cards">
+      <div class="kpi"><div class="n" id="k-views">–</div><div class="l">Pageviews</div></div>
+      <div class="kpi"><div class="n" id="k-visitors">–</div><div class="l">Daily visitors (sum)</div></div>
+      <div class="kpi"><div class="n" id="k-searches">–</div><div class="l">Vibe searches</div></div>
+    </div>
+    <div class="panel">
+      <h2>Traffic over time</h2>
+      <div class="bars" id="bars"></div>
+      <div class="axis"><span id="d0"></span><span id="d1"></span></div>
+      <div class="legend"><i style="background:var(--red)"></i>pageviews <i style="background:var(--butter)"></i>unique daily visitors</div>
+    </div>
+    <div class="panel">
+      <h2>Top vibe searches</h2>
+      <table id="t-searches"></table>
+    </div>
+    <div class="panel">
+      <h2>Most visited reviews</h2>
+      <table id="t-pages"></table>
+    </div>
+  </div>
+</div>
+<script>
+let KEY = sessionStorage.getItem('avi-admin-key') || '';
+let DAYS = 30;
+const $ = id => document.getElementById(id);
+
+async function load() {
+  const r = await fetch(`/api/stats?key=${encodeURIComponent(KEY)}&days=${DAYS}`);
+  if (!r.ok) { sessionStorage.removeItem('avi-admin-key'); $('err').textContent = 'Wrong key.'; return false; }
+  const d = await r.json();
+  $('gate').style.display = 'none'; $('dash').style.display = '';
+  $('k-views').textContent = d.totals.views.toLocaleString();
+  $('k-visitors').textContent = d.daily.reduce((s, x) => s + x.visitors, 0).toLocaleString();
+  $('k-searches').textContent = d.totals.searches.toLocaleString();
+  const max = Math.max(1, ...d.daily.map(x => x.views));
+  $('bars').innerHTML = d.daily.map(x =>
+    `<div class="bar" style="height:${x.views / max * 100}%" title="${x.day}: ${x.views} views, ${x.visitors} visitors">
+       <div class="v" style="height:${x.views ? x.visitors / x.views * 100 : 0}%; top:auto; bottom:0"></div></div>`).join('');
+  $('d0').textContent = d.daily[0]?.day || ''; $('d1').textContent = d.daily.at(-1)?.day || '';
+  $('t-searches').innerHTML = d.topSearches.map(s =>
+    `<tr><td>${s.term.replace(/</g,'&lt;')}</td><td class="n">${s.count}</td></tr>`).join('') || '<tr><td>No searches yet</td></tr>';
+  $('t-pages').innerHTML = d.topPages.map(p =>
+    `<tr><td><a href="${p.path}" target="_blank">${p.path.replace('/reviews/','').replace(/\/$/,'')}</a></td><td class="n">${p.views}</td></tr>`).join('') || '<tr><td>No review visits yet</td></tr>';
+  return true;
+}
+$('go').onclick = async () => { KEY = $('key').value.trim(); if (await load()) sessionStorage.setItem('avi-admin-key', KEY); };
+$('key').addEventListener('keydown', e => { if (e.key === 'Enter') $('go').click(); });
+$('range').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  DAYS = +b.dataset.d;
+  document.querySelectorAll('.range button').forEach(x => x.classList.toggle('on', x === b));
+  load();
+});
+if (KEY) load();
+</script>
+</body>
+</html>

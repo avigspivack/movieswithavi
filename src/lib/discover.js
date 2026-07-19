@@ -40,6 +40,8 @@ function tokens(q) {
 }
 
 export async function recommend(query) {
+  try { fetch('/api/track', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ type: 'search', term: query }) }); } catch {}
+
   const L = await lib();
   const words = tokens(query);
   const expanded = new Set(words);
