@@ -22,7 +22,6 @@ CREATE INDEX IF NOT EXISTS s_term ON searches(term);
 
 const app = express();
 app.use(express.json({ limit: '2kb' }));
-
 const GH_TOKEN = process.env.GITHUB_TOKEN || '';
 const GH_REPO = process.env.GITHUB_REPO || '';
 const GH_BRANCH = process.env.GITHUB_BRANCH || 'main';
@@ -63,16 +62,19 @@ app.post('/api/publish', express.json({ limit: '10mb' }), async (req, res) => {
     if (!ADMIN_KEY || b.key !== ADMIN_KEY) return res.status(401).json({ error: 'Wrong admin key.' });
 
     const slug = String(b.slug || '').toLowerCase().replace(/[^a-z0-9-]/g, '');
-    if (!slug || !b.title || !b.oneLine || !b.deets) return res.status(400).json({ error: 'Missing title, summary, or Deets.' });
+    if (!slug || !b.title) return res.status(400).json({ error: 'Missing title.' });
+    if (!b.draft && (!b.oneLine || !b.deets || !Number.isFinite(Number(b.ratingNum)))) return res.status(400).json({ error: 'Publishing needs a rating, summary, and Deets (drafts can be title-only).' });
 
     const num = Number(b.ratingNum);
+    const hasRating = Number.isFinite(num);
     const fm = [
       '---',
       `title: ${yq(b.title)}`,
       `date: ${b.date || new Date().toISOString().slice(0, 10)}`,
-      `rating: ${yq(b.rating || `${num}/4`)}`,
-      `ratingNum: ${Number.isFinite(num) ? num : 0}`,
-      `oneLine: ${yq(b.oneLine)}`,
+      hasRating ? `rating: ${yq(b.rating || `${num}/4`)}` : null,
+      hasRating ? `ratingNum: ${num}` : null,
+      b.ratingText ? `ratingText: ${yq(b.ratingText)}` : null,
+      b.oneLine ? `oneLine: ${yq(b.oneLine)}` : null,
       b.perfectFor ? `perfectFor: ${yq(b.perfectFor)}` : null,
       b.whereToWatch ? `whereToWatch: ${yq(b.whereToWatch)}` : null,
       b.foodPairing ? `foodPairing: ${yq(b.foodPairing)}` : null,
@@ -83,7 +85,7 @@ app.post('/api/publish', express.json({ limit: '10mb' }), async (req, res) => {
       '',
     ].filter(Boolean).join('\n');
 
-    const md = fm + String(b.deets).trim() + '\n';
+    const md = fm + String(b.deets || '').trim() + '\n';
     const mdB64 = Buffer.from(md, 'utf8').toString('base64');
 
     // Poster first, then the review — so the review never goes live pointing
@@ -101,6 +103,7 @@ app.post('/api/publish', express.json({ limit: '10mb' }), async (req, res) => {
     res.status(500).json({ error: e.message || 'Publish failed.' });
   }
 });
+
 
 const today = () => new Date().toISOString().slice(0, 10);
 // daily-rotating anonymous visitor id: hash of ip+ua+day, raw ip never stored

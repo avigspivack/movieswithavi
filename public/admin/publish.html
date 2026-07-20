@@ -67,10 +67,15 @@ button.ghost { background: #fff; color: var(--ink); border: 2px solid rgba(42,30
     <input type="text" id="title" placeholder="e.g. Miroirs No. 3" autocomplete="off" required />
     <div class="slugline" id="slugline"></div>
 
-    <label>Rating</label>
-    <div class="stars">
-      <input type="range" id="rating" min="0" max="4" step="0.25" value="3" />
-      <span class="val" id="rating-val">3/4 ★</span>
+    <div class="row">
+      <div>
+        <label for="rating">Rating <em>(out of 4, e.g. 3.65)</em></label>
+        <input type="text" id="rating" inputmode="decimal" placeholder="3.65" autocomplete="off" />
+      </div>
+      <div>
+        <label for="ratingText">Rating description</label>
+        <input type="text" id="ratingText" placeholder="A must-see film" />
+      </div>
     </div>
 
     <label for="oneLine">One-line summary</label>
@@ -128,9 +133,6 @@ function refresh() {
   $('slugline').textContent = t ? `→ src/content/reviews/${slugify(t)}.md` : '';
 }
 $('title').addEventListener('input', refresh);
-$('rating').addEventListener('input', () => {
-  $('rating-val').textContent = (+$('rating').value) + '/4 ★';
-});
 
 // ---- gate (reuses the projection-booth key) ----
 async function tryKey() {
@@ -176,19 +178,29 @@ async function submit(asDraft) {
   const msg = $('msg');
   msg.className = 'msg';
   if (!title) return showErr('The movie needs a title.');
-  if (!$('oneLine').value.trim()) return showErr('Add the one-line summary.');
-  if (!$('deets').value.trim()) return showErr('The Deets are empty.');
-  if (!asDraft && !posterData) return showErr('Add a poster before publishing (drafts can skip it).');
+  if (!asDraft) {
+    if (!$('oneLine').value.trim()) return showErr('Add the one-line summary.');
+    if (!$('deets').value.trim()) return showErr('The Deets are empty.');
+    if (!posterData) return showErr('Add a poster before publishing (drafts can skip it).');
+  }
 
-  const num = +$('rating').value;
+  const ratingRaw = $('rating').value.trim().replace(',', '.');
+  let num = null;
+  if (ratingRaw) {
+    num = parseFloat(ratingRaw);
+    if (!Number.isFinite(num) || num < 0 || num > 4) return showErr('Rating should be a number between 0 and 4, like 3.65.');
+    num = Math.round(num * 100) / 100;
+  }
+  if (num === null && !asDraft) return showErr('Add a rating before publishing.');
   const body = {
     key: KEY,
     draft: asDraft,
     slug: slugify(title),
     title,
     date: new Date().toISOString().slice(0, 10),
-    rating: `${num}/4`,
+    rating: num === null ? '' : `${num}/4`,
     ratingNum: num,
+    ratingText: $('ratingText').value.trim(),
     oneLine: $('oneLine').value.trim(),
     perfectFor: $('perfectFor').value.trim(),
     whereToWatch: $('whereToWatch').value.trim(),
