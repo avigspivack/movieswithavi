@@ -71,7 +71,7 @@ app.post('/api/publish', express.json({ limit: '10mb' }), async (req, res) => {
       '---',
       `title: ${yq(b.title)}`,
       `date: ${b.date || new Date().toISOString().slice(0, 10)}`,
-      hasRating ? `rating: ${yq(b.rating || `${num}/4`)}` : null,
+      hasRating ? `rating: ${yq(b.ratingText ? `${num}/4 (aka ${b.ratingText})` : (b.rating || `${num}/4`))}` : null,
       hasRating ? `ratingNum: ${num}` : null,
       b.ratingText ? `ratingText: ${yq(b.ratingText)}` : null,
       b.oneLine ? `oneLine: ${yq(b.oneLine)}` : null,
@@ -80,7 +80,7 @@ app.post('/api/publish', express.json({ limit: '10mb' }), async (req, res) => {
       b.foodPairing ? `foodPairing: ${yq(b.foodPairing)}` : null,
       `categories: ${ylist(Array.isArray(b.categories) ? b.categories : [])}`,
       `tags: ${ylist(Array.isArray(b.tags) ? b.tags : [])}`,
-      b.posterBase64 ? `image: ${yq(`/posters/${slug}.${b.posterExt || 'jpg'}`)}` : null,
+      b.posterBase64 ? `image: ${yq(`/posters/${slug}.${b.posterExt || 'jpg'}`)}` : (b.imagePath ? `image: ${yq(b.imagePath)}` : null),
       '---',
       '',
     ].filter(Boolean).join('\n');
@@ -98,12 +98,64 @@ app.post('/api/publish', express.json({ limit: '10mb' }), async (req, res) => {
     const mdPath = b.draft ? `drafts/${slug}.md` : `src/content/reviews/${slug}.md`;
     await ghPut(mdPath, mdB64, b.draft ? `Draft: ${b.title}` : `Review: ${b.title}`);
 
+    // If this review previously lived elsewhere (e.g. a draft that just went live), remove the old file
+    if (okAdminPath(b.previousPath) && b.previousPath !== mdPath) {
+      await ghDelete(b.previousPath, `Remove superseded: ${b.title}`);
+    }
+
     res.json({ ok: true, path: mdPath });
   } catch (e) {
     res.status(500).json({ error: e.message || 'Publish failed.' });
   }
 });
 
+
+
+// ---------- admin: list & read reviews/drafts ----------
+
+async function ghGetJson(p) {
+  const r = await fetch(`https://api.github.com/repos/${GH_REPO}/contents/${p}?ref=${GH_BRANCH}`, {
+    headers: { Authorization: `Bearer ${GH_TOKEN}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' },
+  });
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error(`GitHub said ${r.status} listing ${p}`);
+  return r.json();
+}
+
+async function ghDelete(p, message) {
+  const f = await ghGetJson(p);
+  if (!f || !f.sha) return; // already gone
+  const r = await fetch(`https://api.github.com/repos/${GH_REPO}/contents/${p}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${GH_TOKEN}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message, sha: f.sha, branch: GH_BRANCH }),
+  });
+  if (!r.ok) throw new Error(`GitHub said ${r.status} deleting ${p}`);
+}
+
+const okAdminPath = (p) => typeof p === 'string' && p.endsWith('.md') && !p.includes('..') &&
+  (p.startsWith('src/content/reviews/') || p.startsWith('drafts/'));
+
+app.get('/api/admin/list', async (req, res) => {
+  try {
+    if (!ADMIN_KEY || req.query.key !== ADMIN_KEY) return res.status(401).json({ error: 'unauthorized' });
+    const [pub, dr] = await Promise.all([ghGetJson('src/content/reviews'), ghGetJson('drafts')]);
+    const slim = (arr) => (Array.isArray(arr) ? arr : []).filter(f => f.name.endsWith('.md'))
+      .map(f => ({ name: f.name.replace(/\.md$/, ''), path: f.path }));
+    res.json({ published: slim(pub), drafts: slim(dr) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/admin/file', async (req, res) => {
+  try {
+    if (!ADMIN_KEY || req.query.key !== ADMIN_KEY) return res.status(401).json({ error: 'unauthorized' });
+    const p = req.query.path;
+    if (!okAdminPath(p)) return res.status(400).json({ error: 'bad path' });
+    const f = await ghGetJson(p);
+    if (!f || !f.content) return res.status(404).json({ error: 'not found' });
+    res.json({ path: p, raw: Buffer.from(f.content, 'base64').toString('utf8') });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
 const today = () => new Date().toISOString().slice(0, 10);
 // daily-rotating anonymous visitor id: hash of ip+ua+day, raw ip never stored

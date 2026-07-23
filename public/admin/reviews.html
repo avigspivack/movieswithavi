@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>The Vault — Movies with Avi</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Spline+Sans+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root { --red:#C0392E; --dark:#1B1214; --cream:#F6EFE4; --ink:#2A1E1B; --soft:#6B5A52; --butter:#F2B838; }
+* { box-sizing: border-box; margin: 0; }
+body { background: var(--cream); color: var(--ink); font: 16px/1.5 "Bricolage Grotesque", sans-serif; padding: 22px 16px 80px; }
+.wrap { max-width: 560px; margin: 0 auto; }
+h1 { font-size: 1.6rem; font-weight: 800; letter-spacing: -.01em; }
+h1 span { color: var(--red); }
+.sub { color: var(--soft); margin: 4px 0 16px; font-size: .95rem; }
+.sub a { color: var(--red); }
+input[type=text], input[type=search], textarea {
+  width: 100%; padding: 12px 13px; border-radius: 10px; font: inherit;
+  border: 2px solid rgba(42,30,27,.18); background: #fff; color: var(--ink);
+}
+input:focus, textarea:focus { outline: none; border-color: var(--red); }
+textarea { resize: vertical; }
+#deets { min-height: 200px; font-size: 16px; }
+label { display: block; font-weight: 600; font-size: .82rem; letter-spacing: .04em; text-transform: uppercase; color: var(--soft); margin: 16px 0 5px; }
+label em { text-transform: none; letter-spacing: 0; font-style: normal; font-weight: 400; }
+.row { display: flex; gap: 10px; } .row > div { flex: 1; }
+.sec { font-weight: 800; font-size: 1.05rem; margin: 22px 0 8px; display: flex; align-items: baseline; gap: 8px; }
+.sec .count { font: 600 .78rem "Spline Sans Mono"; color: var(--soft); }
+.item { background: #fff; border: 2px solid rgba(42,30,27,.12); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px;
+  display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.item:active { border-color: var(--red); }
+.item .t { font-weight: 600; flex: 1; }
+.badge { font: 600 .68rem "Spline Sans Mono"; letter-spacing: .05em; padding: 3px 8px; border-radius: 999px; }
+.badge.draft { background: #FBEED3; color: #8a6203; }
+.badge.live { background: #e8f3e4; color: #2c5e26; }
+button { background: var(--red); color: #fff; border: none; border-radius: 10px; padding: 13px 20px; font: 700 1rem "Bricolage Grotesque", sans-serif; cursor: pointer; }
+button:disabled { opacity: .55; }
+button.ghost { background: #fff; color: var(--ink); border: 2px solid rgba(42,30,27,.2); font-weight: 600; }
+.actions { display: flex; gap: 10px; margin-top: 26px; } .actions button { flex: 1; }
+.poster { margin-top: 6px; border: 2px dashed rgba(42,30,27,.25); border-radius: 12px; padding: 14px; text-align: center; background: #fff; }
+.poster img { max-width: 140px; max-height: 200px; border-radius: 8px; display: block; margin: 0 auto 10px; box-shadow: 0 4px 14px rgba(27,18,20,.25); }
+.poster .hint { color: var(--soft); font-size: .85rem; }
+.gate { max-width: 380px; margin: 60px auto; text-align: center; }
+.gate input { width: 100%; padding: 12px 14px; border-radius: 10px; border: 2px solid rgba(42,30,27,.2); font: inherit; margin: 14px 0 10px; }
+.msg { margin-top: 16px; padding: 13px 15px; border-radius: 10px; font-weight: 600; display: none; }
+.msg.ok { display: block; background: #e8f3e4; color: #2c5e26; }
+.msg.err { display: block; background: #fbe4e0; color: var(--red); }
+.back { background: none; border: none; color: var(--red); font: 700 .95rem "Bricolage Grotesque", sans-serif; padding: 0; margin-bottom: 12px; cursor: pointer; }
+.marquee { background: var(--dark); color: var(--cream); border-radius: 12px; padding: 10px 14px; font: 600 .8rem "Spline Sans Mono"; letter-spacing: .05em; margin-bottom: 18px; }
+.marquee b { color: var(--butter); }
+.empty { color: var(--soft); font-size: .92rem; padding: 6px 2px 2px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="gate" id="gate">
+    <h1>The <span>Vault</span></h1>
+    <p style="margin-top:8px">Enter the admin key to browse the archive.</p>
+    <input id="key" type="password" placeholder="Admin key" autocomplete="current-password" />
+    <button id="go">Open the vault</button>
+    <p class="msg err" id="gate-err"></p>
+  </div>
+
+  <div id="list-view" style="display:none">
+    <h1>The <span>Vault</span></h1>
+    <p class="sub">Every review, live and in-progress. Tap one to edit — or <a href="/admin/publish">write a new one</a>.</p>
+    <input type="search" id="q" placeholder="Search titles…" autocomplete="off" />
+    <div class="sec">Drafts <span class="count" id="c-drafts"></span></div>
+    <div id="drafts"></div>
+    <div class="sec">Published <span class="count" id="c-pub"></span></div>
+    <div id="published"></div>
+  </div>
+
+  <form id="editor" style="display:none" onsubmit="return false">
+    <button class="back" id="back" type="button">&larr; Back to the vault</button>
+    <div class="marquee" id="ed-status">EDITING · <b id="m-title"></b></div>
+
+    <label for="title">Movie title</label>
+    <input type="text" id="title" autocomplete="off" />
+
+    <div class="row">
+      <div>
+        <label for="rating">Rating <em>(out of 4, e.g. 3.65)</em></label>
+        <input type="text" id="rating" inputmode="decimal" placeholder="3.65" autocomplete="off" />
+      </div>
+      <div>
+        <label for="ratingText">Rating description</label>
+        <input type="text" id="ratingText" placeholder="A must-see film" />
+      </div>
+    </div>
+
+    <label for="oneLine">One-line summary</label>
+    <input type="text" id="oneLine" />
+
+    <label for="deets">The Deets</label>
+    <textarea id="deets"></textarea>
+
+    <label for="perfectFor">Perfect for</label>
+    <input type="text" id="perfectFor" />
+
+    <div class="row">
+      <div>
+        <label for="whereToWatch">Where to watch</label>
+        <input type="text" id="whereToWatch" />
+      </div>
+      <div>
+        <label for="foodPairing">Food pairing</label>
+        <input type="text" id="foodPairing" />
+      </div>
+    </div>
+
+    <label for="categories">Categories <em>(comma-separated)</em></label>
+    <input type="text" id="categories" />
+
+    <label for="tags">Tags <em>(comma-separated)</em></label>
+    <input type="text" id="tags" />
+
+    <label>Poster</label>
+    <div class="poster" id="poster-box">
+      <img id="poster-preview" style="display:none" alt="" />
+      <div class="hint" id="poster-hint">Tap to add or replace the poster</div>
+      <input type="file" id="poster" accept="image/*" style="display:none" />
+    </div>
+
+    <div class="actions">
+      <button class="ghost" id="draft-btn" type="button">Save as draft</button>
+      <button id="publish-btn" type="button">Publish</button>
+    </div>
+    <p class="msg" id="msg"></p>
+  </form>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let KEY = sessionStorage.getItem('avi-admin-key') || '';
+let LIB = { drafts: [], published: [] };
+let CUR = null;           // { path, slug, isDraft }
+let posterData = null, posterExt = 'jpg', existingImage = null;
+
+const pretty = s => s.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+// ---- gate ----
+async function openVault() {
+  const r = await fetch(`/api/admin/list?key=${encodeURIComponent(KEY)}`);
+  if (!r.ok) { sessionStorage.removeItem('avi-admin-key'); return false; }
+  LIB = await r.json();
+  $('gate').style.display = 'none';
+  showList();
+  return true;
+}
+$('go').onclick = async () => {
+  KEY = $('key').value.trim();
+  if (await openVault()) sessionStorage.setItem('avi-admin-key', KEY);
+  else $('gate-err').textContent = 'Wrong key.';
+};
+$('key').addEventListener('keydown', e => { if (e.key === 'Enter') $('go').click(); });
+if (KEY) openVault();
+
+// ---- list ----
+function renderList() {
+  const q = $('q').value.trim().toLowerCase();
+  const fill = (elId, items, badgeClass, badgeText) => {
+    const el = $(elId);
+    el.innerHTML = '';
+    const shown = items.filter(i => i.name.toLowerCase().includes(q));
+    if (!shown.length) { el.innerHTML = `<div class="empty">${q ? 'No matches.' : 'Nothing here yet.'}</div>`; return 0; }
+    for (const it of shown) {
+      const d = document.createElement('div');
+      d.className = 'item';
+      d.innerHTML = `<span class="t">${pretty(it.name)}</span><span class="badge ${badgeClass}">${badgeText}</span>`;
+      d.onclick = () => openEditor(it, badgeClass === 'draft');
+      el.appendChild(d);
+    }
+    return shown.length;
+  };
+  $('c-drafts').textContent = fill('drafts', LIB.drafts, 'draft', 'DRAFT') + ' of ' + LIB.drafts.length;
+  $('c-pub').textContent = fill('published', LIB.published, 'live', 'LIVE') + ' of ' + LIB.published.length;
+}
+$('q').addEventListener('input', renderList);
+function showList() { $('editor').style.display = 'none'; $('list-view').style.display = ''; renderList(); }
+$('back').onclick = showList;
+
+// ---- tiny frontmatter parser (matches what the publisher writes) ----
+function parseReview(raw) {
+  const m = raw.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+  const out = { body: m ? m[2].trim() : raw.trim() };
+  if (!m) return out;
+  for (const line of m[1].split('\n')) {
+    const i = line.indexOf(':');
+    if (i < 1) continue;
+    const k = line.slice(0, i).trim(), v = line.slice(i + 1).trim();
+    try { out[k] = JSON.parse(v); } catch { out[k] = v; }
+  }
+  return out;
+}
+
+// ---- editor ----
+async function openEditor(item, isDraft) {
+  const r = await fetch(`/api/admin/file?key=${encodeURIComponent(KEY)}&path=${encodeURIComponent(item.path)}`);
+  if (!r.ok) { alert('Could not load that review.'); return; }
+  const { raw } = await r.json();
+  const d = parseReview(raw);
+  CUR = { path: item.path, slug: item.name, isDraft };
+  posterData = null; existingImage = d.image || null;
+
+  $('title').value = d.title || pretty(item.name);
+  $('m-title').textContent = d.title || pretty(item.name);
+  $('ed-status').innerHTML = (isDraft ? 'EDITING DRAFT · ' : 'EDITING LIVE REVIEW · ') + '<b>' + (d.title || pretty(item.name)) + '</b>';
+  const num = (typeof d.ratingNum === 'number') ? d.ratingNum : (d.rating ? parseFloat(d.rating) : '');
+  $('rating').value = num === '' || Number.isNaN(num) ? '' : num;
+  $('ratingText').value = d.ratingText || ((typeof d.rating === 'string' && (d.rating.match(/\(aka (.*)\)\s*$/) || [])[1]) || '');
+  $('oneLine').value = d.oneLine || '';
+  $('deets').value = d.body || '';
+  $('perfectFor').value = d.perfectFor || '';
+  $('whereToWatch').value = d.whereToWatch || '';
+  $('foodPairing').value = d.foodPairing || '';
+  $('categories').value = (d.categories || []).join(', ');
+  $('tags').value = (d.tags || []).join(', ');
+
+  if (existingImage) {
+    $('poster-preview').src = existingImage;
+    $('poster-preview').style.display = '';
+    $('poster-hint').textContent = 'Tap to replace the poster';
+  } else {
+    $('poster-preview').style.display = 'none';
+    $('poster-hint').textContent = 'Tap to add a poster';
+  }
+  $('msg').className = 'msg';
+  $('list-view').style.display = 'none';
+  $('editor').style.display = '';
+  window.scrollTo(0, 0);
+}
+
+$('title').addEventListener('input', () => { $('m-title').textContent = $('title').value.trim() || '…'; });
+
+// ---- poster picking (downscaled on-device) ----
+$('poster-box').onclick = () => $('poster').click();
+$('poster').addEventListener('change', () => {
+  const f = $('poster').files[0];
+  if (!f) return;
+  const img = new Image();
+  img.onload = () => {
+    const MAX = 1400;
+    const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.width * scale);
+    c.height = Math.round(img.height * scale);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    posterData = c.toDataURL('image/jpeg', 0.85).split(',')[1];
+    posterExt = 'jpg';
+    $('poster-preview').src = 'data:image/jpeg;base64,' + posterData;
+    $('poster-preview').style.display = '';
+    $('poster-hint').textContent = 'Tap to replace the poster';
+    URL.revokeObjectURL(img.src);
+  };
+  img.src = URL.createObjectURL(f);
+});
+
+// ---- save / publish ----
+async function submit(asDraft) {
+  const title = $('title').value.trim();
+  const msg = $('msg'); msg.className = 'msg';
+  if (!title) return showErr('The movie needs a title.');
+  const ratingRaw = $('rating').value.trim().replace(',', '.');
+  let num = null;
+  if (ratingRaw) {
+    num = parseFloat(ratingRaw);
+    if (!Number.isFinite(num) || num < 0 || num > 4) return showErr('Rating should be between 0 and 4, like 3.65.');
+    num = Math.round(num * 100) / 100;
+  }
+  if (!asDraft) {
+    if (num === null) return showErr('Add a rating before publishing.');
+    if (!$('oneLine').value.trim()) return showErr('Add the one-line summary.');
+    if (!$('deets').value.trim()) return showErr('The Deets are empty.');
+    if (!posterData && !existingImage) return showErr('Add a poster before publishing.');
+  }
+
+  const body = {
+    key: KEY, draft: asDraft,
+    slug: CUR.slug,
+    previousPath: CUR.path,
+    title,
+    rating: num === null ? '' : `${num}/4`,
+    ratingNum: num,
+    ratingText: $('ratingText').value.trim(),
+    oneLine: $('oneLine').value.trim(),
+    perfectFor: $('perfectFor').value.trim(),
+    whereToWatch: $('whereToWatch').value.trim(),
+    foodPairing: $('foodPairing').value.trim(),
+    categories: $('categories').value.split(',').map(s => s.trim()).filter(Boolean),
+    tags: $('tags').value.split(',').map(s => s.trim()).filter(Boolean),
+    deets: $('deets').value.trim(),
+    posterBase64: posterData, posterExt,
+    imagePath: posterData ? null : existingImage,
+  };
+
+  $('publish-btn').disabled = $('draft-btn').disabled = true;
+  try {
+    const r = await fetch('/api/publish', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || `Save failed (${r.status}).`);
+    msg.className = 'msg ok';
+    msg.innerHTML = asDraft
+      ? `Draft saved.`
+      : `<b>${title}</b> is publishing — live in ~2 minutes at <a href="/reviews/${CUR.slug}/">/reviews/${CUR.slug}/</a>.`;
+    // refresh the library so badges move to the right section
+    const lr = await fetch(`/api/admin/list?key=${encodeURIComponent(KEY)}`);
+    if (lr.ok) LIB = await lr.json();
+    CUR.path = d.path; CUR.isDraft = asDraft;
+  } catch (e) { showErr(e.message); }
+  finally { $('publish-btn').disabled = $('draft-btn').disabled = false; }
+}
+function showErr(t) { const m = $('msg'); m.className = 'msg err'; m.textContent = t; }
+$('publish-btn').onclick = () => submit(false);
+$('draft-btn').onclick = () => submit(true);
+</script>
+</body>
+</html>
