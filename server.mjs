@@ -13,6 +13,10 @@ db.pragma('journal_mode = WAL');
 db.exec(`
 CREATE TABLE IF NOT EXISTS pageviews (
   id INTEGER PRIMARY KEY, day TEXT NOT NULL, path TEXT NOT NULL, visitor TEXT NOT NULL, ts INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS reactions (
+  slug TEXT PRIMARY KEY,
+  count INTEGER NOT NULL DEFAULT 0
+);
 CREATE TABLE IF NOT EXISTS searches (
   id INTEGER PRIMARY KEY, day TEXT NOT NULL, term TEXT NOT NULL, ts INTEGER NOT NULL);
 CREATE INDEX IF NOT EXISTS pv_day ON pageviews(day);
@@ -186,6 +190,8 @@ app.get('/api/stats', (req, res) => {
       FROM pageviews WHERE day >= ? GROUP BY day ORDER BY day`).all(since),
     topPages: db.prepare(`SELECT path, COUNT(*) views FROM pageviews
       WHERE day >= ? AND path LIKE '/reviews/%' GROUP BY path ORDER BY views DESC LIMIT 20`).all(since),
+    topReactions: db.prepare(`SELECT slug, count FROM reactions ORDER BY count DESC LIMIT 12`).all(),
+    totalReactions: db.prepare('SELECT COALESCE(SUM(count),0) n FROM reactions').get().n,
     topSearches: db.prepare(`SELECT term, COUNT(*) count FROM searches
       WHERE day >= ? GROUP BY term ORDER BY count DESC LIMIT 20`).all(since),
     totals: {
@@ -193,6 +199,30 @@ app.get('/api/stats', (req, res) => {
       searches: db.prepare('SELECT COUNT(*) n FROM searches WHERE day >= ?').get(since).n,
     },
   });
+});
+
+
+// ---------- reactions (public: 🍿 taps) ----------
+const reactGet = db.prepare('SELECT count FROM reactions WHERE slug = ?');
+const reactUp = db.prepare(`INSERT INTO reactions (slug, count) VALUES (?, 1)
+  ON CONFLICT(slug) DO UPDATE SET count = count + 1`);
+const cleanSlug = s => typeof s === 'string' && /^[a-z0-9-]{1,120}$/.test(s);
+
+app.get('/api/reactions', (req, res) => {
+  const slugs = String(req.query.slugs || '').split(',').filter(cleanSlug).slice(0, 300);
+  const out = {};
+  for (const sl of slugs) out[sl] = reactGet.get(sl)?.count || 0;
+  res.json(out);
+});
+
+app.post('/api/react', (req, res) => {
+  try {
+    const sl = req.body?.slug;
+    if (!cleanSlug(sl)) return res.status(400).json({ error: 'bad slug' });
+    const n = Math.min(20, Math.max(1, parseInt(req.body?.n) || 1)); // allow burst taps, capped
+    for (let i = 0; i < n; i++) reactUp.run(sl);
+    res.json({ slug: sl, count: reactGet.get(sl).count });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.use(express.static(path.resolve('dist'), { extensions: ['html'] }));

@@ -54,6 +54,71 @@ const { Content } = await render(review);
     {d.whereToWatch && <div class="sec"><span class="lab">WHERE TO WATCH</span><div class="body">{d.whereToWatch}</div></div>}
     {d.foodPairing && <div class="sec"><span class="lab">FOOD PAIRING</span><div class="body">{d.foodPairing}</div></div>}
 
+    <div class="react" id="react" data-slug={review.id}>
+      <button class="react-btn" id="react-btn" aria-label="I'd watch this">
+        <span class="corn">🍿</span>
+      </button>
+      <div class="react-meta">
+        <span class="react-count" id="react-count">–</span>
+        <span class="react-label">“I’d watch this”</span>
+      </div>
+    </div>
+
     <a class="back" href="/browse/">← Back to the library</a>
   </article>
+
+  <style>
+    .react { margin-top: 44px; display: flex; align-items: center; gap: 16px; padding: 20px 22px;
+      background: #fff; border: 2px solid rgba(42,30,27,.1); border-radius: 16px; }
+    .react-btn { border: none; background: var(--seat-red, #C0392E); color: #fff; width: 62px; height: 62px;
+      border-radius: 50%; font-size: 1.7rem; cursor: pointer; line-height: 1; display: grid; place-items: center;
+      box-shadow: 0 6px 16px rgba(192,57,46,.34); transition: transform .08s ease; -webkit-tap-highlight-color: transparent; }
+    .react-btn:active { transform: scale(.9); }
+    .react-btn.pop { animation: pop .32s ease; }
+    @keyframes pop { 0%{transform:scale(1)} 40%{transform:scale(1.22)} 100%{transform:scale(1)} }
+    .react-meta { display: flex; flex-direction: column; }
+    .react-count { font-family: var(--font-display); font-weight: 800; font-size: 1.5rem; line-height: 1; color: var(--seat-deep, #2A1E1B); }
+    .react-label { font-family: var(--font-mono); font-size: .74rem; letter-spacing: .06em; color: var(--ink-soft); margin-top: 3px; }
+    .floaters { position: relative; }
+    .floater { position: absolute; pointer-events: none; font-size: 1.1rem; animation: rise .8s ease-out forwards; }
+    @keyframes rise { 0%{opacity:1; transform: translateY(0) scale(.8)} 100%{opacity:0; transform: translateY(-46px) scale(1.2)} }
+  </style>
+
+  <script>
+    (function () {
+      const wrap = document.getElementById('react');
+      if (!wrap) return;
+      const slug = wrap.dataset.slug;
+      const btn = document.getElementById('react-btn');
+      const countEl = document.getElementById('react-count');
+      let count = 0, pending = 0, timer = null;
+
+      fetch('/api/reactions?slugs=' + encodeURIComponent(slug))
+        .then(r => r.json()).then(d => { count = d[slug] || 0; countEl.textContent = count.toLocaleString(); })
+        .catch(() => { countEl.textContent = '0'; });
+
+      function flush() {
+        const n = pending; pending = 0; timer = null;
+        if (!n) return;
+        fetch('/api/react', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slug, n }) })
+          .then(r => r.json()).then(d => { if (typeof d.count === 'number') { count = d.count; countEl.textContent = count.toLocaleString(); } })
+          .catch(() => {});
+      }
+      function floater() {
+        const f = document.createElement('span');
+        f.className = 'floater'; f.textContent = '🍿';
+        f.style.left = (14 + Math.random() * 34) + 'px'; f.style.top = '0px';
+        btn.appendChild(f); setTimeout(() => f.remove(), 800);
+      }
+      btn.classList.add('floaters');
+      btn.addEventListener('click', () => {
+        count++; pending++;
+        countEl.textContent = count.toLocaleString();
+        btn.classList.remove('pop'); void btn.offsetWidth; btn.classList.add('pop');
+        floater();
+        clearTimeout(timer); timer = setTimeout(flush, 600); // batch rapid taps into one request
+      });
+    })();
+  </script>
 </Base>
