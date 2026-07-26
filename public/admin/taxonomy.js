@@ -25,11 +25,18 @@
 
   function attach(input, kind) {
     const pool = () => (kind === 'tags' ? TAX.tags : TAX.categories);
+    // Wrap the input so the dropdown positions against the INPUT, not the whole form.
+    let wrap = input.closest('.tax-wrap');
+    if (!wrap) {
+      wrap = document.createElement('div');
+      wrap.className = 'tax-wrap';
+      input.parentNode.insertBefore(wrap, input);
+      wrap.appendChild(input);
+    }
     const box = document.createElement('div');
     box.className = 'tax-suggest';
     box.style.display = 'none';
-    input.parentNode.style.position = 'relative';
-    input.insertAdjacentElement('afterend', box);
+    wrap.appendChild(box);
 
     let active = -1;
 
