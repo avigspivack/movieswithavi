@@ -106,5 +106,10 @@ button { font-family: var(--font-display); cursor: pointer; }
 .runners { padding: 0 20px 20px; font-size: .85rem; color: var(--ink-soft); }
 .runners a { color: var(--seat-red); font-weight: 600; }
 .browse-empty { grid-column: 1/-1; text-align: center; color: var(--ink-soft); padding: 60px 0; }
+.tagbanner { max-width: 1100px; margin: 0 auto 4px; padding: 10px 16px; border-radius: 11px;
+  background: #fff; border: 1.5px solid rgba(42,30,27,.15); font-family: var(--font-display);
+  font-size: .9rem; color: var(--ink-soft); }
+.tagbanner b { color: var(--seat-red); }
+.tagbanner a { color: var(--seat-red); font-weight: 700; text-decoration: none; }
 @media (max-width: 780px) { .stub { margin-top: -40px; } }
 @media (prefers-reduced-motion: reduce) { .stub { animation: none; } }

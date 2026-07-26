@@ -46,7 +46,7 @@ const cats = [...new Set(reviews.flatMap(r => r.data.categories))].sort();
   <main class="grid" id="grid"></main>
 
   <script>
-    let LIB = [], activeCat = '', term = '', sort = 'date';
+    let LIB = [], activeCat = '', activeTag = '', term = '', sort = 'date';
     const grid = document.getElementById('grid'), count = document.getElementById('count');
     const cells = (rn) => rn == null ? '' :
       '<span class="cells">' + [0,1,2,3].map(i =>
@@ -56,6 +56,7 @@ const cats = [...new Set(reviews.flatMap(r => r.data.categories))].sort();
     function render() {
       let list = LIB.filter(p => {
         if (activeCat && !p.categories.includes(activeCat)) return false;
+        if (activeTag && !(p.tags || []).includes(activeTag)) return false;
         if (!term) return true;
         return (p.title + ' ' + (p.oneLine||'') + ' ' + (p.deets||'') + ' ' + (p.foodPairing||'') + ' ' +
                 p.categories.join(' ') + ' ' + p.tags.join(' ')).toLowerCase().includes(term);
@@ -77,13 +78,41 @@ const cats = [...new Set(reviews.flatMap(r => r.data.categories))].sort();
         : `<div class="browse-empty">Nothing matches — yet. Try fewer words, or <a href="/#tonight">let me pick for you</a>.</div>`;
     }
 
-    fetch('/library.json').then(r => r.json()).then(d => { LIB = d; render(); });
+    function syncChips() {
+      document.querySelectorAll('.chip').forEach(x =>
+        x.setAttribute('aria-pressed', String((x.dataset.c || '') === activeCat)));
+    }
+    function tagBanner() {
+      let el = document.getElementById('tagbanner');
+      if (activeTag) {
+        if (!el) {
+          el = document.createElement('div');
+          el.id = 'tagbanner';
+          el.className = 'tagbanner';
+          document.getElementById('grid').before(el);
+        }
+        el.innerHTML = `Showing reviews tagged <b>#${activeTag}</b> · <a href="/browse/">clear</a>`;
+      } else if (el) { el.remove(); }
+    }
+
+    function applyFromURL() {
+      const p = new URLSearchParams(location.search);
+      activeCat = p.get('cat') || '';
+      activeTag = p.get('tag') || '';
+      syncChips();
+    }
+
+    fetch('/library.json').then(r => r.json()).then(d => { LIB = d; applyFromURL(); tagBanner(); render(); });
     document.getElementById('q').oninput = e => { term = e.target.value.trim().toLowerCase(); render(); };
     document.getElementById('sort').onchange = e => { sort = e.target.value; render(); };
     document.getElementById('chips').addEventListener('click', e => {
       const b = e.target.closest('.chip'); if (!b) return;
       activeCat = b.dataset.c;
-      document.querySelectorAll('.chip').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+      activeTag = ''; // picking a category clears an active tag filter
+      syncChips(); tagBanner();
+      const u = new URL(location);
+      u.search = activeCat ? `?cat=${encodeURIComponent(activeCat)}` : '';
+      history.replaceState({}, '', u);
       render();
     });
   </script>
