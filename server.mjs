@@ -1,4 +1,5 @@
 // Movies with Avi — static server + featherweight analytics
+import fs from 'node:fs';
 import express from 'express';
 import Database from 'better-sqlite3';
 import { createHash } from 'node:crypto';
@@ -223,6 +224,25 @@ app.post('/api/react', (req, res) => {
     for (let i = 0; i < n; i++) reactUp.run(sl);
     res.json({ slug: sl, count: reactGet.get(sl).count });
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+
+// ---------- taxonomy: distinct categories & tags in use (for autocomplete) ----------
+let _taxCache = null, _taxAt = 0;
+app.get('/api/taxonomy', (req, res) => {
+  try {
+    if (_taxCache && Date.now() - _taxAt < 60000) return res.json(_taxCache);
+    const raw = fs.readFileSync(path.resolve('dist/library.json'), 'utf8');
+    const lib = JSON.parse(raw);
+    const cats = new Map(), tags = new Map(); // lowercase -> canonical form + count
+    const add = (m, v) => { if (!v) return; const k = String(v).trim(); if (!k) return;
+      const lk = k.toLowerCase(); const e = m.get(lk); m.set(lk, { name: e?.name || k, n: (e?.n || 0) + 1 }); };
+    for (const r of lib) { (r.categories || []).forEach(c => add(cats, c)); (r.tags || []).forEach(t => add(tags, t)); }
+    const sortByUse = m => [...m.values()].sort((a, b) => b.n - a.n || a.name.localeCompare(b.name)).map(e => e.name);
+    _taxCache = { categories: sortByUse(cats), tags: sortByUse(tags) };
+    _taxAt = Date.now();
+    res.json(_taxCache);
+  } catch (e) { res.json({ categories: [], tags: [] }); } // never block publishing if this fails
 });
 
 app.use(express.static(path.resolve('dist'), { extensions: ['html'] }));

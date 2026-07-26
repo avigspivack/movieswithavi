@@ -63,6 +63,12 @@ button.ghost { background: #fff; color: var(--ink); border: 2px solid rgba(42,30
   font: 600 .72rem "Spline Sans Mono", monospace; letter-spacing: .04em; padding: 4px 14px; border-radius: 10px; }
 .adminnav a .ico { display: block; font-size: 1.25rem; margin-bottom: 2px; }
 .adminnav a.on { opacity: 1; color: var(--butter); background: rgba(242,184,56,.12); }
+
+.tax-suggest { position: absolute; left: 0; right: 0; top: 100%; z-index: 30; background: #fff;
+  border: 2px solid rgba(42,30,27,.15); border-radius: 10px; margin-top: 4px; overflow: hidden;
+  box-shadow: 0 8px 22px rgba(27,18,20,.16); }
+.tax-opt { padding: 10px 13px; font-size: .95rem; cursor: pointer; }
+.tax-opt:hover, .tax-opt.on { background: rgba(192,57,46,.10); color: var(--red); }
 </style>
 </head>
 <body>
@@ -136,6 +142,7 @@ button.ghost { background: #fff; color: var(--ink); border: 2px solid rgba(42,30
   </form>
 </div>
 
+<script src="/admin/taxonomy.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 let KEY = sessionStorage.getItem('avi-admin-key') || '';
@@ -156,6 +163,7 @@ async function tryKey() {
   const r = await fetch(`/api/stats?key=${encodeURIComponent(KEY)}&days=7`);
   if (!r.ok) { sessionStorage.removeItem('avi-admin-key'); return false; }
   $('gate').style.display = 'none'; $('form').style.display = '';
+  if (window.initTaxonomy) window.initTaxonomy();
   return true;
 }
 $('go').onclick = async () => {
