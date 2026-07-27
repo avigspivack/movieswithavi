@@ -8,4 +8,5 @@ oneLine: "A family navigates the challenges of their relationships."
 foodPairing: "Feels like pancakes."
 categories: ["Family drama", "Southern", "Great cast", "Great Screenplay"]
 tags: ["drama", "great cast", "great script"]
+image: "/posters/a-little-prayer.jpg"
 ---This is another beautiful film about a family in the South (Kentucky) from the same writer/director who created "Junebug" (the remarkably astute Angus MacLachlan).
