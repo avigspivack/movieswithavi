@@ -26,7 +26,12 @@ CREATE INDEX IF NOT EXISTS s_term ON searches(term);
 `);
 
 const app = express();
-app.use(express.json({ limit: '2kb' }));
+// Keep a tight body limit everywhere EXCEPT /api/publish, which carries poster images.
+const smallJson = express.json({ limit: '2kb' });
+app.use((req, res, next) => {
+  if (req.path === '/api/publish') return next();   // handled by its own 12mb parser below
+  smallJson(req, res, next);
+});
 const GH_TOKEN = process.env.GITHUB_TOKEN || '';
 const GH_REPO = process.env.GITHUB_REPO || '';
 const GH_BRANCH = process.env.GITHUB_BRANCH || 'main';
@@ -60,7 +65,7 @@ async function ghPut(path, base64Content, message) {
 const yq = (s) => `"${String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`; // yaml-safe quote
 const ylist = (a) => `[${a.map(yq).join(', ')}]`;
 
-app.post('/api/publish', express.json({ limit: '10mb' }), async (req, res) => {
+app.post('/api/publish', express.json({ limit: '12mb' }), async (req, res) => {
   try {
     const b = req.body || {};
     if (!GH_TOKEN || !GH_REPO) return res.status(500).json({ error: 'GITHUB_TOKEN / GITHUB_REPO not set on the server.' });
@@ -214,6 +219,13 @@ app.get('/api/reactions', (req, res) => {
   const out = {};
   for (const sl of slugs) out[sl] = reactGet.get(sl)?.count || 0;
   res.json(out);
+});
+
+app.use((err, req, res, next) => {
+  if (err && (err.type === 'entity.too.large' || err.status === 413)) {
+    return res.status(413).json({ error: 'That poster is too large — try a smaller image.' });
+  }
+  next(err);
 });
 
 app.post('/api/react', (req, res) => {
