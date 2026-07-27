@@ -5,6 +5,7 @@ rating: "3.92/4 (aka A tender must-see)"
 ratingNum: 3.92
 ratingText: "A tender must-see"
 oneLine: "A family navigates the challenges of their relationships."
+perfectFor: "If you liked “Junebug” you will love this one, and if you’re in the mood for a slow and delicate yet elevating family drama."
 foodPairing: "Feels like pancakes."
 categories: ["Family drama", "Southern", "Great cast", "Great Screenplay"]
 tags: ["drama", "great cast", "great script"]
