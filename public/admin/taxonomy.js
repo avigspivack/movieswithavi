@@ -5,12 +5,44 @@
   let TAX = { categories: [], tags: [] };
   let loaded = false;
 
+  // Build the lists from /library.json — a static file the site already publishes,
+  // so this works even if the server has no /api/taxonomy endpoint.
+  function fromLibrary(lib) {
+    const cats = new Map(), tags = new Map();
+    const add = (m, v) => {
+      if (!v) return;
+      const k = String(v).trim(); if (!k) return;
+      const lk = k.toLowerCase(); const e = m.get(lk);
+      m.set(lk, { name: (e && e.name) || k, n: ((e && e.n) || 0) + 1 });
+    };
+    for (const r of lib) {
+      (r.categories || []).forEach(c => add(cats, c));
+      (r.tags || []).forEach(t => add(tags, t));
+    }
+    const sorted = m => [...m.values()]
+      .sort((a, b) => b.n - a.n || a.name.localeCompare(b.name))
+      .map(e => e.name);
+    return { categories: sorted(cats), tags: sorted(tags) };
+  }
+
   async function loadTax() {
     if (loaded) return TAX;
+    // 1) static library.json (always present on a built site)
     try {
-      const r = await fetch('/api/taxonomy');
-      if (r.ok) TAX = await r.json();
-    } catch (e) { /* offline / build not ready: fall back to empty, free entry still works */ }
+      const r = await fetch('/library.json', { cache: 'no-store' });
+      if (r.ok) {
+        const lib = await r.json();
+        if (Array.isArray(lib) && lib.length) TAX = fromLibrary(lib);
+      }
+    } catch (e) { /* fall through */ }
+    // 2) fallback: server endpoint, if the static file was unavailable
+    if (!TAX.categories.length && !TAX.tags.length) {
+      try {
+        const r = await fetch('/api/taxonomy');
+        if (r.ok) TAX = await r.json();
+      } catch (e) { /* free entry still works */ }
+    }
+    console.log('[taxonomy] loaded', TAX.categories.length, 'categories,', TAX.tags.length, 'tags');
     loaded = true;
     return TAX;
   }
