@@ -39,10 +39,26 @@ function tokens(q) {
   return q.toLowerCase().replace(/[^a-z0-9\s-]/g, ' ').split(/\s+/).filter(w => w.length > 1);
 }
 
+// Fisher-Yates, so the deck order is genuinely random each time.
+function shuffle(a) {
+  const x = a.slice();
+  for (let i = x.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [x[i], x[j]] = [x[j], x[i]]; }
+  return x;
+}
+
 export async function recommend(query) {
-  try { fetch('/api/track', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ type: 'search', term: query }) }); } catch {}
+  const q = (query || '').trim();
+  // only log real searches, not "surprise me" taps
+  if (q) { try { fetch('/api/track', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ type: 'search', term: q }) }); } catch {} }
 
   const L = await lib();
+
+  // No words? Dealer's choice — a shuffled deck from the whole library.
+  if (!q) {
+    const deck = shuffle(L).slice(0, 6);
+    return { pick: deck[0], runners: [], fallback: false, random: true, deck };
+  }
+
   const words = tokens(query);
   const expanded = new Set(words);
   for (const w of words) (SYNONYMS[w] || []).forEach(s => expanded.add(s));
@@ -65,16 +81,20 @@ export async function recommend(query) {
   }).filter(x => x.s >= 2).sort((a, b) => b.s - a.s);
 
   if (!scored.length) {
-    // graceful fallback: a random pick from the top shelf
-    const top = L.filter(p => (p.ratingNum || 0) >= 3.7);
-    const pick = top[Math.floor(Math.random() * top.length)];
-    return { pick, runners: [], fallback: true };
+    // graceful fallback: a deck from the top shelf
+    const deck = shuffle(L.filter(p => (p.ratingNum || 0) >= 3.7)).slice(0, 6);
+    return { pick: deck[0], runners: [], fallback: true, deck };
   }
 
-  // variety: choose randomly among the near-best so "Deal me another" works
+  // Build a deck of up to 6 distinct candidates so "Deal me another" always has
+  // somewhere to go: the near-best shuffled first, then topped up in score order.
   const best = scored[0].s;
-  const pool = scored.filter(x => x.s >= best - 1).slice(0, 6);
-  const chosen = pool[Math.floor(Math.random() * pool.length)];
-  const runners = scored.filter(x => x.p !== chosen.p).slice(0, 2).map(x => x.p);
-  return { pick: chosen.p, runners, fallback: false };
+  const near = shuffle(scored.filter(x => x.s >= best - 1).slice(0, 6));
+  const deckScored = near.slice();
+  for (const x of scored) {
+    if (deckScored.length >= 6) break;
+    if (!deckScored.includes(x)) deckScored.push(x);
+  }
+  const deck = deckScored.map(x => x.p);
+  return { pick: deck[0], runners: deck.slice(1, 3), fallback: false, deck };
 }

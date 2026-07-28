@@ -56,7 +56,7 @@ import Base from '../layouts/Base.astro';
           <span class="avatar-cap">YOUR HOST · BEST SEAT IN THE HOUSE</span>
         </div>
         <h1>What do you want to watch <span>tonight?</span></h1>
-        <p class="sub">Describe the vibe in a few words — I've watched everything so you don't have to.</p>
+        <p class="sub">Describe the vibe in a few words — or leave it blank and I'll just pick one.</p>
         <div class="ask">
           <input id="mood" type="text" placeholder="e.g. french heist, something fun" autocomplete="off" />
           <button id="pick">Pick for me</button>
@@ -89,20 +89,30 @@ import Base from '../layouts/Base.astro';
         `<span class="cell"><i style="width:${Math.max(0, Math.min(1, rn - i)) * 100}%"></i></span>`).join('') +
       `<span class="rnum">${rn.toFixed(2)} / 4</span></span>`;
 
+    let deck = [], idx = 0, isRandom = false;
+
     async function run() {
       const q = input.value.trim();
-      if (!q) { input.focus(); return; }
-      const { pick, runners } = await recommend(q);
+      const res = await recommend(q);
+      deck = (res.deck && res.deck.length) ? res.deck : (res.pick ? [res.pick] : []);
+      idx = 0;
+      isRandom = !!res.random;
+      draw();
+    }
+
+    function draw() {
+      const pick = deck[idx];
+      const runners = deck.filter((_, i) => i !== idx).slice(0, 2);
       if (!pick) {
         zone.innerHTML = `<div class="stub"><div class="stub-body" style="grid-template-columns:1fr"><div>
           <h2>Stumped me — and that's rare.</h2>
-          <p class="why">Try different words, or hit "Pick for me" with the box empty next time you're back — the library is at <a href="/browse/">/browse</a>.</p>
+          <p class="why">Try different words, or clear the box and hit "Pick for me" for a random one — the library is at <a href="/browse/">/browse</a>.</p>
         </div></div></div>`;
         return;
       }
       zone.innerHTML = `
         <div class="stub">
-          <div class="stub-head"><span class="adm">ADMIT ONE · AVI'S PICK</span><span class="mono" style="font-size:.7rem">${pick.date}</span></div>
+          <div class="stub-head"><span class="adm">ADMIT ONE · ${isRandom ? "DEALER'S CHOICE" : "AVI'S PICK"}</span><span class="mono" style="font-size:.7rem">${pick.date}</span></div>
           <div class="stub-body">
             ${pick.image ? `<img src="${pick.image}" alt="">` : ''}
             <div>
@@ -118,9 +128,17 @@ import Base from '../layouts/Base.astro';
           </div>
           ${runners.length ? `<p class="runners">Also in the running: ${runners.map(r => `<a href="/reviews/${r.slug}/">${r.title}</a>`).join(' · ')}</p>` : ''}
         </div>`;
-      document.getElementById('again').onclick = run;
       zone.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
+
+    // Delegated: survives every re-render of the stub.
+    zone.addEventListener('click', (e) => {
+      if (!e.target.closest('#again')) return;
+      if (deck.length < 2) return;
+      idx = (idx + 1) % deck.length;   // up to 5 alternates, then back to the original
+      draw();
+    });
+
     document.getElementById('pick').onclick = run;
     input.addEventListener('keydown', e => { if (e.key === 'Enter') run(); });
     document.getElementById('hints').addEventListener('click', e => {
