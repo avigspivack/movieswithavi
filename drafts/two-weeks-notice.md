@@ -6,7 +6,9 @@ ratingNum: 3.82
 ratingText: "Underrated romcom"
 oneLine: "An idealistic attorney joins and then resigns from a corporate real estate firm."
 perfectFor: "If you enjoy a Hugh Grant romcom throwback, and especially if you also enjoy the comedic stylings of Sandra Bullock."
-categories: []
-tags: []
+whereToWatch: "You can rent it on Amazon Prime, Apple TV, or YouTube. Satisfaction guaranteed."
+foodPairing: "A blueberry muffin; coffee optional."
+categories: ["Great cast", "Romcom", "Comedy"]
+tags: ["great cast", "rewatchable", "romcoms"]
 image: "/posters/two-weeks-notice.jpg"
 ---
