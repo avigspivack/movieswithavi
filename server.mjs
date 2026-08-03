@@ -62,6 +62,56 @@ async function ghPut(path, base64Content, message) {
   }
 }
 
+
+// Write several files (and optionally delete some) in ONE commit, so a publish
+// triggers exactly one Railway build instead of two racing ones.
+async function ghCommitAll({ files = [], deletions = [], message }) {
+  const api = `https://api.github.com/repos/${GH_REPO}`;
+  const H = {
+    Authorization: `Bearer ${GH_TOKEN}`,
+    Accept: 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28',
+    'Content-Type': 'application/json',
+  };
+  const call = async (url, opts = {}) => {
+    const r = await fetch(url, { headers: H, ...opts });
+    if (!r.ok) throw new Error(`GitHub ${r.status} on ${url.replace(api, '')}: ${(await r.text()).slice(0, 160)}`);
+    return r.json();
+  };
+
+  // 1. where the branch currently points
+  const ref = await call(`${api}/git/ref/heads/${GH_BRANCH}`);
+  const parent = ref.object.sha;
+  const parentCommit = await call(`${api}/git/commits/${parent}`);
+
+  // 2. upload each file as a blob
+  const tree = [];
+  for (const f of files) {
+    const blob = await call(`${api}/git/blobs`, {
+      method: 'POST',
+      body: JSON.stringify({ content: f.contentBase64, encoding: 'base64' }),
+    });
+    tree.push({ path: f.path, mode: '100644', type: 'blob', sha: blob.sha });
+  }
+  // deletions are expressed as a null sha
+  for (const p of deletions) tree.push({ path: p, mode: '100644', type: 'blob', sha: null });
+
+  // 3. new tree -> 4. new commit -> 5. move the branch
+  const newTree = await call(`${api}/git/trees`, {
+    method: 'POST',
+    body: JSON.stringify({ base_tree: parentCommit.tree.sha, tree }),
+  });
+  const commit = await call(`${api}/git/commits`, {
+    method: 'POST',
+    body: JSON.stringify({ message, tree: newTree.sha, parents: [parent] }),
+  });
+  await call(`${api}/git/refs/heads/${GH_BRANCH}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ sha: commit.sha }),
+  });
+  return commit.sha;
+}
+
 const yq = (s) => `"${String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`; // yaml-safe quote
 const ylist = (a) => `[${a.map(yq).join(', ')}]`;
 
@@ -98,20 +148,20 @@ app.post('/api/publish', express.json({ limit: '12mb' }), async (req, res) => {
     const md = fm + String(b.deets || '').trim() + '\n';
     const mdB64 = Buffer.from(md, 'utf8').toString('base64');
 
-    // Poster first, then the review — so the review never goes live pointing
-    // at a poster that isn't in the repo yet.
+    const mdPath = b.draft ? `drafts/${slug}.md` : `src/content/reviews/${slug}.md`;
+    const files = [{ path: mdPath, contentBase64: mdB64 }];
     if (b.posterBase64) {
       const ext = /^(jpg|jpeg|png|webp)$/.test(b.posterExt) ? b.posterExt : 'jpg';
-      await ghPut(`public/posters/${slug}.${ext}`, b.posterBase64, `Poster: ${b.title}`);
+      files.push({ path: `public/posters/${slug}.${ext}`, contentBase64: b.posterBase64 });
     }
+    // a draft that just went live: drop the old copy in the same commit
+    const deletions = (okAdminPath(b.previousPath) && b.previousPath !== mdPath) ? [b.previousPath] : [];
 
-    const mdPath = b.draft ? `drafts/${slug}.md` : `src/content/reviews/${slug}.md`;
-    await ghPut(mdPath, mdB64, b.draft ? `Draft: ${b.title}` : `Review: ${b.title}`);
-
-    // If this review previously lived elsewhere (e.g. a draft that just went live), remove the old file
-    if (okAdminPath(b.previousPath) && b.previousPath !== mdPath) {
-      await ghDelete(b.previousPath, `Remove superseded: ${b.title}`);
-    }
+    await ghCommitAll({
+      files,
+      deletions,
+      message: b.draft ? `Draft: ${b.title}` : `Review: ${b.title}`,
+    });
 
     res.json({ ok: true, path: mdPath });
   } catch (e) {
@@ -260,4 +310,42 @@ app.get('/api/taxonomy', (req, res) => {
 app.use(express.static(path.resolve('dist'), { extensions: ['html'] }));
 app.use((req, res) => res.status(404).sendFile(path.resolve('dist/404.html'), () => res.end('Not found')));
 
-app.listen(PORT, () => console.log(`movieswithavi serving on :${PORT}, db at ${DB_PATH}`));
+const server = app.listen(PORT, () => console.log(`movieswithavi serving on :${PORT}, db at ${DB_PATH}`));
+
+// --- graceful shutdown -------------------------------------------------
+// Railway sends SIGTERM when a new deploy takes over. Without this, Node dies
+// abruptly with a non-zero exit code and the dashboard reports it as a crash.
+// Finish in-flight requests, close SQLite cleanly, then exit 0.
+let shuttingDown = false;
+function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`${signal} received — shutting down cleanly`);
+
+  // stop accepting new connections; wait for open ones to finish
+  server.close(() => {
+    try { db.pragma('wal_checkpoint(TRUNCATE)'); } catch {}
+    try { db.close(); } catch {}
+    console.log('closed database, goodbye');
+    process.exit(0);
+  });
+
+  // don't hang forever if a connection is stuck
+  setTimeout(() => {
+    try { db.close(); } catch {}
+    console.log('forced shutdown after timeout');
+    process.exit(0);
+  }, 8000).unref();
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+
+// A late error shouldn't look like a crash either — log it and leave cleanly.
+process.on('uncaughtException', (err) => {
+  console.error('uncaught exception:', err);
+  shutdown('uncaughtException');
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('unhandled rejection:', reason);
+});
