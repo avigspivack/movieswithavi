@@ -145,7 +145,8 @@ app.post('/api/publish', express.json({ limit: '12mb' }), async (req, res) => {
       '',
     ].filter(Boolean).join('\n');
 
-    const md = fm + String(b.deets || '').trim() + '\n';
+    // blank line after the closing --- so the body is cleanly separated
+    const md = fm + '\n' + String(b.deets || '').trim() + '\n';
     const mdB64 = Buffer.from(md, 'utf8').toString('base64');
 
     const mdPath = b.draft ? `drafts/${slug}.md` : `src/content/reviews/${slug}.md`;

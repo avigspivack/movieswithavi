@@ -11,4 +11,6 @@ foodPairing: "A blueberry muffin; coffee optional."
 categories: ["Great cast", "Romcom", "Comedy"]
 tags: ["great cast", "rewatchable", "romcoms"]
 image: "/posters/two-weeks-notice.jpg"
----Ignore the Rotten Tomatoes rating, people! This is a rewatchable, HIGHLY quotable romcom from the guy who also made “Music and Lyrics,” and this one is much better. Sandra Bullock is an underrated comedic actress despite her spins in “Miss Congeniality” (yes same director, Marc Lawrence). And come on, the chemistry is there… sort of. I’m not sure if the romance is all the way believable, but they are damn funny together. And the parents are perfectly cast. You just have to suspend belief and go for a ride in the Wade helicopter.
+---
+
+Ignore the Rotten Tomatoes rating, people! This is a rewatchable, HIGHLY quotable romcom from the guy who also made “Music and Lyrics,” and this one is much better. Sandra Bullock is an underrated comedic actress despite her spins in “Miss Congeniality” (yes same director, Marc Lawrence). And come on, the chemistry is there… sort of. I’m not sure if the romance is all the way believable, but they are damn funny together. And the parents are perfectly cast. You just have to suspend belief and go for a ride in the Wade helicopter.

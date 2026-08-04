@@ -11,4 +11,6 @@ foodPairing: "Twizzlers, or another joyous candy of your choice."
 categories: ["Great cast", "Comedy", "Classic"]
 tags: ["great cast", "comedy"]
 image: "/posters/legally-blonde.jpg"
----I cannot believe this movie was made 25 years ago, and I think we saw it in the theater way back when. What a classic - Reese Witherspoon steals the show with a career-defining comedic performance for the ages; you can’t take your eyes off her electricity and you don’t want to. It’s silly, funny, quotable and everything in between. And it probably wouldn’t get made today because it’s so perfectly early 2000s, and all the things that were right in that era. Just remember not to stomp your last-season Prada shoes at me!
+---
+
+I cannot believe this movie was made 25 years ago, and I think we saw it in the theater way back when. What a classic - Reese Witherspoon steals the show with a career-defining comedic performance for the ages; you can’t take your eyes off her electricity and you don’t want to. It’s silly, funny, quotable and everything in between. And it probably wouldn’t get made today because it’s so perfectly early 2000s, and all the things that were right in that era. Just remember not to stomp your last-season Prada shoes at me!
