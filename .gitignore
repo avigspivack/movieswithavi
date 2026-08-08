@@ -1,0 +1,13 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+.astro/
+
+# generated runtime data
+analytics.db
+*.db
+
+# os / editor cruft
+.DS_Store

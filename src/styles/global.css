@@ -14,7 +14,7 @@
   --font-mono: "Spline Sans Mono", ui-monospace, monospace;
 }
 * { box-sizing: border-box; margin: 0; }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
 body {
   font-family: var(--font-body);
   color: var(--ink);
@@ -38,11 +38,12 @@ button { font-family: var(--font-display); cursor: pointer; }
 .rnum { font-family: var(--font-mono); font-weight: 600; font-size: .82rem; margin-left: 6px; color: inherit; }
 
 /* nav */
-.nav { display: flex; justify-content: space-between; align-items: center; padding: 18px 22px; max-width: 1080px; margin: 0 auto; }
-.nav .logo { font-family: var(--font-display); font-weight: 800; font-size: 1.15rem; text-decoration: none; color: inherit; letter-spacing: -.01em; }
+.nav { display: flex; justify-content: space-between; align-items: center; gap: 8px 16px; flex-wrap: wrap; padding: 18px 22px; max-width: 1080px; margin: 0 auto; }
+.nav .logo { font-family: var(--font-display); font-weight: 800; font-size: 1.15rem; text-decoration: none; color: inherit; letter-spacing: -.01em; white-space: nowrap; }
 .nav .logo em { color: var(--seat-red); font-style: normal; }
 .nav-dark .logo { color: var(--cream); }
-.nav a.link { text-decoration: none; font-family: var(--font-display); font-weight: 600; font-size: .95rem; color: inherit; margin-left: 20px; }
+.nav .links { display: flex; align-items: center; }
+.nav a.link { text-decoration: none; font-family: var(--font-display); font-weight: 600; font-size: .95rem; color: inherit; margin-left: 20px; white-space: nowrap; }
 .nav-dark a.link { color: var(--cream); }
 
 /* cards */
@@ -68,6 +69,18 @@ button { font-family: var(--font-display); cursor: pointer; }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .card, .card:hover { transition: none; transform: none; }
+}
+
+/* ===== Mobile ===== */
+@media (max-width: 560px) {
+  body { font-size: 16px; }
+  .wrap { padding: 0 16px; }
+  /* Nav: logo centered on its own line, links centered beneath it */
+  .nav { flex-direction: column; justify-content: center; text-align: center; gap: 10px; padding: 14px 16px; }
+  .nav .links { justify-content: center; flex-wrap: wrap; gap: 4px 22px; }
+  /* Bigger, comfortable tap targets; gap (above) replaces side margins so links wrap cleanly */
+  .nav a.link { margin: 0; display: inline-block; padding: 4px 0; }
+  .chip { padding: 9px 16px; min-height: 40px; }
 }
 
 /* dark-page footer contrast */
