@@ -45,6 +45,13 @@ import Base from '../layouts/Base.astro';
       .ask button { padding: 14px; }
       .stub { margin-top: -40px; }
     }
+    @media (max-width: 560px) {
+      .hero { padding: 24px 18px 64px; }
+      .hero-photo { width: 108px; height: 108px; }
+      .avatar-wrap { margin-bottom: 16px; }
+      .browse-tease { padding: 44px 18px 24px; }
+      .browse-tease a { display: block; text-align: center; }
+    }
     @media (prefers-reduced-motion: reduce) { .stub { animation: none; } }
   </style>
 
