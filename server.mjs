@@ -218,6 +218,35 @@ app.get('/api/admin/file', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Delete a draft or published review (and its poster) in one commit.
+app.post('/api/admin/delete', async (req, res) => {
+  try {
+    const b = req.body || {};
+    if (!GH_TOKEN || !GH_REPO) return res.status(500).json({ error: 'GITHUB_TOKEN / GITHUB_REPO not set on the server.' });
+    if (!ADMIN_KEY || b.key !== ADMIN_KEY) return res.status(401).json({ error: 'Wrong admin key.' });
+    const p = b.path;
+    if (!okAdminPath(p)) return res.status(400).json({ error: 'bad path' });
+
+    const f = await ghGetJson(p);
+    if (!f || !f.sha) return res.status(404).json({ error: 'That review is already gone.' });
+
+    const deletions = [p];
+    // If the review references a poster under /posters/, sweep it up in the same commit.
+    const raw = f.content ? Buffer.from(f.content, 'base64').toString('utf8') : '';
+    const m = raw.match(/^image:\s*(.+)$/m);
+    if (m) {
+      const img = m[1].trim().replace(/^["']|["']$/g, '');
+      if (img.startsWith('/posters/') && !img.includes('..')) {
+        const posterPath = `public${img}`;
+        if (await ghGetJson(posterPath)) deletions.push(posterPath);
+      }
+    }
+
+    await ghCommitAll({ deletions, message: `Delete: ${p.replace(/^.*\//, '').replace(/\.md$/, '')}` });
+    res.json({ ok: true, deleted: deletions });
+  } catch (e) { res.status(500).json({ error: e.message || 'Delete failed.' }); }
+});
+
 const today = () => new Date().toISOString().slice(0, 10);
 // daily-rotating anonymous visitor id: hash of ip+ua+day, raw ip never stored
 const visitorId = (req) => createHash('sha256')
