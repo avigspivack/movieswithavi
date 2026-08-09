@@ -45,6 +45,8 @@ label em { text-transform: none; letter-spacing: 0; font-style: normal; font-wei
 button { background: var(--red); color: #fff; border: none; border-radius: 10px; padding: 13px 20px; font: 700 1rem "Bricolage Grotesque", sans-serif; cursor: pointer; }
 button:disabled { opacity: .55; }
 button.ghost { background: #fff; color: var(--ink); border: 2px solid rgba(42,30,27,.2); font-weight: 600; }
+button.danger { width: 100%; margin-top: 12px; background: #fff; color: var(--red); border: 2px solid rgba(192,57,46,.35); font-weight: 600; }
+button.danger:active { background: var(--red); color: #fff; border-color: var(--red); }
 .actions { display: flex; gap: 10px; margin-top: 26px; } .actions button { flex: 1; }
 .poster { margin-top: 6px; border: 2px dashed rgba(42,30,27,.25); border-radius: 12px; padding: 14px; text-align: center; background: #fff; }
 .poster img { max-width: 140px; max-height: 200px; border-radius: 8px; display: block; margin: 0 auto 10px; box-shadow: 0 4px 14px rgba(27,18,20,.25); }
@@ -160,6 +162,7 @@ button.ghost { background: #fff; color: var(--ink); border: 2px solid rgba(42,30
       <button class="ghost" id="draft-btn" type="button">Save as draft</button>
       <button id="publish-btn" type="button">Publish</button>
     </div>
+    <button class="danger" id="delete-btn" type="button">Delete this review</button>
     <p class="msg" id="msg"></p>
   </form>
 </div>
@@ -392,6 +395,44 @@ async function submit(asDraft) {
 function showErr(t) { const m = $('msg'); m.className = 'msg err'; m.textContent = t; }
 $('publish-btn').onclick = () => submit(false);
 $('draft-btn').onclick = () => submit(true);
+
+// ---- delete ----
+async function del() {
+  if (!CUR) return;
+  const label = CUR.isDraft ? 'draft' : 'published review';
+  const title = $('title').value.trim() || pretty(CUR.slug);
+  if (!confirm(`Delete the ${label} for "${title}"? This removes it from the site and can't be undone.`)) return;
+
+  const msg = $('msg'); msg.className = 'msg';
+  $('publish-btn').disabled = $('draft-btn').disabled = $('delete-btn').disabled = true;
+  try {
+    const r = await fetch('/api/admin/delete', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: KEY, path: CUR.path }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || `Delete failed (${r.status}).`);
+    toast(`Deleted "${title}"`);
+    // drop it from the in-memory library so the list is right immediately
+    LIB.drafts = (LIB.drafts || []).filter(i => i.path !== CUR.path);
+    LIB.published = (LIB.published || []).filter(i => i.path !== CUR.path);
+    CUR = null;
+    showList();
+    // best-effort refresh from the server too (never let it break the page)
+    try {
+      const lr = await fetch(`/api/admin/list?key=${encodeURIComponent(KEY)}`);
+      if (lr.ok) {
+        const fresh = await lr.json();
+        if (fresh && Array.isArray(fresh.published) && Array.isArray(fresh.drafts)) { LIB = fresh; renderList(); }
+      }
+    } catch (err) { console.warn('[vault] list refresh failed', err); }
+  } catch (e) {
+    showErr(e.message); toast(e.message || 'Delete failed', true);
+  } finally {
+    $('publish-btn').disabled = $('draft-btn').disabled = $('delete-btn').disabled = false;
+  }
+}
+$('delete-btn').onclick = del;
 </script>
 
 <div class="toast" id="toast"><span class="tick">✓</span><span id="toast-msg"></span></div>
