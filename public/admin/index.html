@@ -82,6 +82,7 @@ body { padding-bottom: 96px; }
       <div class="kpi"><div class="n" id="k-visitors">–</div><div class="l">Daily visitors (sum)</div></div>
       <div class="kpi"><div class="n" id="k-searches">–</div><div class="l">Vibe searches</div></div>
       <div class="kpi"><div class="n" id="k-reactions">–</div><div class="l">🍿 Reactions</div></div>
+      <div class="kpi"><div class="n" id="k-subscribers">–</div><div class="l">✉️ Subscribers</div></div>
     </div>
     <div class="panel">
       <h2>Traffic over time</h2>
@@ -127,6 +128,7 @@ async function load() {
     ? rx.map(r => `<tr><td><a href="/reviews/${r.slug}/" style="color:inherit;text-decoration:none">${pretty(r.slug)}</a></td><td style="text-align:right">🍿 ${r.count.toLocaleString()}</td></tr>`).join('')
     : '<tr><td style="color:var(--soft)">No reactions yet — they\'ll show up as readers tap.</td></tr>';
   if (d.totalReactions != null) $('k-reactions').textContent = d.totalReactions.toLocaleString();
+  if (d.totalSubscribers != null) $('k-subscribers').textContent = d.totalSubscribers.toLocaleString();
   $('t-searches').innerHTML = d.topSearches.map(s =>
     `<tr><td>${s.term.replace(/</g,'&lt;')}</td><td class="n">${s.count}</td></tr>`).join('') || '<tr><td>No searches yet</td></tr>';
   $('t-pages').innerHTML = d.topPages.map(p =>

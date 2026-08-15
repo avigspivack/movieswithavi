@@ -64,6 +64,18 @@ const { Content } = await render(review);
       </div>
     </div>
 
+    <section class="signup" id="signup" data-source="review">
+      <div class="signup-in">
+        <h2>Movies worth watching, in your inbox</h2>
+        <form class="signup-form" id="signup-form" novalidate>
+          <input class="signup-name" name="name" type="text" placeholder="First name" autocomplete="given-name" />
+          <input class="signup-email" name="email" type="email" placeholder="you@email.com" autocomplete="email" required />
+          <button type="submit">Subscribe</button>
+        </form>
+        <p class="signup-msg" id="signup-msg" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+
     <a class="back" href="/browse/">← Back to the library</a>
   </article>
 
@@ -82,6 +94,29 @@ const { Content } = await render(review);
     .floaters { position: relative; }
     .floater { position: absolute; pointer-events: none; font-size: 1.1rem; animation: rise .8s ease-out forwards; }
     @keyframes rise { 0%{opacity:1; transform: translateY(0) scale(.8)} 100%{opacity:0; transform: translateY(-46px) scale(1.2)} }
+
+    /* email capture — dark theater card */
+    .signup { margin-top: 28px; background: radial-gradient(120% 140% at 0% 0%, var(--house-mid) 0%, var(--house-dark) 70%);
+      border-radius: 16px; padding: 26px 24px; color: var(--cream); }
+    .signup-in { max-width: 560px; }
+    .signup h2 { font-family: var(--font-display); font-weight: 800; font-size: 1.3rem; letter-spacing: -.01em; line-height: 1.15; }
+    .signup-form { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+    .signup-form input { flex: 1 1 160px; min-width: 0; font: 1rem var(--font-body); padding: 12px 14px; border-radius: 11px;
+      border: 2px solid rgba(246,239,228,.16); background: rgba(246,239,228,.06); color: var(--cream); }
+    .signup-form input::placeholder { color: rgba(246,239,228,.5); }
+    .signup-form input:focus { border-color: var(--seat-red); outline: none; }
+    .signup-form button { flex: 0 0 auto; background: var(--seat-red); color: #fff; border: none; border-radius: 11px;
+      padding: 12px 22px; font: 800 1rem var(--font-display); }
+    .signup-form button:hover { background: var(--seat-deep); }
+    .signup-form button:disabled { opacity: .6; cursor: default; }
+    .signup-msg { margin-top: 12px; font-size: .92rem; color: rgba(246,239,228,.8); min-height: 1.2em; }
+    .signup-msg.err { color: var(--butter); }
+    .signup.done .signup-in { text-align: left; }
+    .signup.done h2 { font-size: 1.15rem; }
+    @media (max-width: 560px) {
+      .signup { padding: 22px 18px; }
+      .signup-form button { flex: 1 1 100%; }
+    }
   </style>
 
   <script>
@@ -120,5 +155,10 @@ const { Content } = await render(review);
         clearTimeout(timer); timer = setTimeout(flush, 600); // batch rapid taps into one request
       });
     })();
+  </script>
+
+  <script>
+    import { initSignup } from '../../lib/subscribe.js';
+    initSignup(document.getElementById('signup'));
   </script>
 </Base>
