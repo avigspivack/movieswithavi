@@ -20,6 +20,12 @@ CREATE TABLE IF NOT EXISTS reactions (
 );
 CREATE TABLE IF NOT EXISTS searches (
   id INTEGER PRIMARY KEY, day TEXT NOT NULL, term TEXT NOT NULL, ts INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS subscribers (
+  email TEXT PRIMARY KEY,
+  name  TEXT,
+  source TEXT,           -- where they signed up: 'review' | 'homepage'
+  day   TEXT NOT NULL,
+  ts    INTEGER NOT NULL);
 CREATE INDEX IF NOT EXISTS pv_day ON pageviews(day);
 CREATE INDEX IF NOT EXISTS pv_path ON pageviews(path);
 CREATE INDEX IF NOT EXISTS s_term ON searches(term);
@@ -280,6 +286,7 @@ app.get('/api/stats', (req, res) => {
     totalReactions: db.prepare('SELECT COALESCE(SUM(count),0) n FROM reactions').get().n,
     topSearches: db.prepare(`SELECT term, COUNT(*) count FROM searches
       WHERE day >= ? GROUP BY term ORDER BY count DESC LIMIT 20`).all(since),
+    totalSubscribers: db.prepare('SELECT COUNT(*) n FROM subscribers').get().n,
     totals: {
       views: db.prepare('SELECT COUNT(*) n FROM pageviews WHERE day >= ?').get(since).n,
       searches: db.prepare('SELECT COUNT(*) n FROM searches WHERE day >= ?').get(since).n,
@@ -316,6 +323,49 @@ app.post('/api/react', (req, res) => {
     for (let i = 0; i < n; i++) reactUp.run(sl);
     res.json({ slug: sl, count: reactGet.get(sl).count });
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+
+// ---------- subscribers (public: email capture) ----------
+// One row per email. Signing up again just refreshes the name/source — no dupes.
+const subUpsert = db.prepare(`INSERT INTO subscribers (email, name, source, day, ts)
+  VALUES (@email, @name, @source, @day, @ts)
+  ON CONFLICT(email) DO UPDATE SET
+    name   = COALESCE(NULLIF(excluded.name, ''), subscribers.name),
+    source = excluded.source`);
+// Deliberately simple + permissive: one @, a dot in the domain, no spaces.
+const validEmail = (s) => typeof s === 'string' && s.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+const okSource = (s) => s === 'review' || s === 'homepage';
+
+app.post('/api/subscribe', (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    if (!validEmail(email)) return res.status(400).json({ error: "That email doesn't look right." });
+    const name = String(req.body?.name || '').trim().slice(0, 80);
+    const source = okSource(req.body?.source) ? req.body.source : 'homepage';
+    subUpsert.run({ email, name, source, day: today(), ts: Date.now() });
+
+    // ── Buttondown handoff goes here ──────────────────────────────────
+    // When a platform is chosen, forward the subscriber and keep the local
+    // row as the source of truth. Example (fire-and-forget, never blocks the
+    // reader's success response):
+    //   if (process.env.BUTTONDOWN_KEY) fetch('https://api.buttondown.email/v1/subscribers', {
+    //     method: 'POST',
+    //     headers: { Authorization: `Token ${process.env.BUTTONDOWN_KEY}`, 'Content-Type': 'application/json' },
+    //     body: JSON.stringify({ email_address: email, metadata: { name } }),
+    //   }).catch(() => {});
+    // ──────────────────────────────────────────────────────────────────
+
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/admin/subscribers', (req, res) => {
+  if (!ADMIN_KEY || req.query.key !== ADMIN_KEY) return res.status(401).json({ error: 'unauthorized' });
+  res.json({
+    count: db.prepare('SELECT COUNT(*) n FROM subscribers').get().n,
+    subscribers: db.prepare('SELECT email, name, source, day FROM subscribers ORDER BY ts DESC').all(),
+  });
 });
 
 

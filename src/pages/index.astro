@@ -40,6 +40,26 @@ import Base from '../layouts/Base.astro';
     .browse-tease a { display: inline-block; background: transparent; border: 2px solid var(--seat-red); color: var(--cream); font-family: var(--font-display); font-weight: 800; text-decoration: none; padding: 13px 26px; border-radius: 12px; }
     .browse-tease a:hover { background: var(--seat-red); }
 
+    /* email capture strip */
+    .signup { max-width: 620px; margin: 30px auto 10px; padding: 26px 24px; border-radius: 16px;
+      background: rgba(246,239,228,.05); border: 1.5px solid rgba(246,239,228,.14); color: var(--cream); text-align: center; }
+    .signup h2 { font-family: var(--font-display); font-weight: 800; font-size: 1.3rem; letter-spacing: -.01em; color: var(--cream); }
+    .signup-form { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+    .signup-form input { flex: 1 1 160px; min-width: 0; font: 1rem var(--font-body); padding: 12px 14px; border-radius: 11px;
+      border: 2px solid rgba(246,239,228,.16); background: rgba(246,239,228,.07); color: var(--cream); }
+    .signup-form input::placeholder { color: rgba(246,239,228,.5); }
+    .signup-form input:focus { border-color: var(--seat-red); outline: none; }
+    .signup-form button { flex: 0 0 auto; background: var(--seat-red); color: #fff; border: none; border-radius: 11px;
+      padding: 12px 22px; font: 800 1rem var(--font-display); }
+    .signup-form button:hover { background: var(--seat-deep); }
+    .signup-form button:disabled { opacity: .6; cursor: default; }
+    .signup-msg { margin-top: 12px; font-size: .92rem; color: rgba(246,239,228,.8); min-height: 1.2em; }
+    .signup-msg.err { color: var(--butter); }
+    @media (max-width: 560px) {
+      .signup { margin: 20px 16px 6px; padding: 22px 18px; }
+      .signup-form button { flex: 1 1 100%; }
+    }
+
     @media (max-width: 780px) {
       .ask { flex-direction: column; }
       .ask button { padding: 14px; }
@@ -85,6 +105,18 @@ import Base from '../layouts/Base.astro';
     <h2>Not feeling decisive?</h2>
     <p>Wander the full library — 200+ reviews, sortable by rating, category, or tag.</p>
     <a href="/browse/">Browse the library →</a>
+  </section>
+
+  <section class="signup" id="signup" data-source="homepage">
+    <div class="signup-in">
+      <h2>Movies worth watching, in your inbox</h2>
+      <form class="signup-form" id="signup-form" novalidate>
+        <input class="signup-name" name="name" type="text" placeholder="First name" autocomplete="given-name" />
+        <input class="signup-email" name="email" type="email" placeholder="you@email.com" autocomplete="email" required />
+        <button type="submit">Subscribe</button>
+      </form>
+      <p class="signup-msg" id="signup-msg" role="status" aria-live="polite"></p>
+    </div>
   </section>
 
   <script>
@@ -152,5 +184,10 @@ import Base from '../layouts/Base.astro';
       const b = e.target.closest('.hint'); if (!b) return;
       input.value = b.textContent; run();
     });
+  </script>
+
+  <script>
+    import { initSignup } from '../lib/subscribe.js';
+    initSignup(document.getElementById('signup'));
   </script>
 </Base>
