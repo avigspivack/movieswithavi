@@ -11,6 +11,7 @@ categories: ["Action", "Adventure", "Intense drama", "Oscar Winner", "War"]
 tags: ["British", "drama", "intense", "war"]
 image: "/posters/dunkirk.jpg"
 originalUrl: "https://movieswithavi.com/dunkirk/"
+trivia: "Nolan drops you onto a French beach for the WWII evacuation — land, sea, and air, the enemy almost never seen."
 ---
 
 I am a tad embarrassed to admit that I hadn’t seen this excellent film until a recent long flight back from Europe, especially as a self-proclaimed Nolan fan. And I am also embarrassed that I watched it on a tiny plane screen when it really deserves a proper large format experience, for widescreen and audio. But alas, from the first moments - a Nolan trademark - we are off and running and right in the midst of the action, being shot at and chased by the invisible enemy. This is a movie about bravery and fear, and the times in a life when we become heroes.

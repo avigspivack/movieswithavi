@@ -1,0 +1,124 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="Movie trivia — Movies with Avi" dark={true}>
+  <style is:global>
+    body.body-dark { background: var(--house-dark); }
+    .play-hero { text-align: center; padding: 30px 20px 6px; color: var(--cream); }
+    .play-hero h1 { font-family: var(--font-display); font-weight: 800; font-size: clamp(2rem, 6vw, 3rem); letter-spacing: -.02em; }
+    .play-hero h1 span { color: var(--butter); }
+    .play-hero .play-sub { font-family: var(--font-body); font-style: italic; color: rgba(246,239,228,.72); margin-top: 10px; }
+
+    .play-wrap { max-width: 680px; margin: 0 auto; padding: 18px 18px 80px; color: var(--cream); }
+
+    .panel { background: rgba(246,239,228,.05); border: 1.5px solid rgba(246,239,228,.14); border-radius: 16px;
+      padding: 26px 22px; text-align: center; }
+    .panel p { color: rgba(246,239,228,.8); }
+    .big-btn { margin-top: 16px; background: var(--seat-red); color: #fff; border: none; border-radius: 12px;
+      padding: 14px 26px; font: 800 1.05rem var(--font-display); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .big-btn:hover { background: var(--seat-deep); }
+
+    /* game */
+    .game { background: rgba(246,239,228,.05); border: 1.5px solid rgba(246,239,228,.14); border-radius: 16px; padding: 20px 18px 22px; }
+    .game-top { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: .74rem;
+      letter-spacing: .08em; color: rgba(246,239,228,.6); text-transform: uppercase; }
+    .clue { font-family: var(--font-display); font-weight: 600; font-size: 1.28rem; line-height: 1.3; margin: 14px 0 18px; color: var(--cream); }
+
+    .options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .opt { padding: 0; background: rgba(246,239,228,.06); border: 2px solid rgba(246,239,228,.14); border-radius: 12px;
+      overflow: hidden; cursor: pointer; text-align: left; color: var(--cream); -webkit-tap-highlight-color: transparent;
+      transition: border-color .12s ease, transform .08s ease; }
+    .opt:hover:not(:disabled) { border-color: var(--butter); }
+    .opt:active:not(:disabled) { transform: scale(.98); }
+    .opt img { width: 100%; aspect-ratio: 3/4; object-fit: cover; background: var(--house-mid); display: block; }
+    .opt-title { display: block; padding: 9px 11px; font: 700 .9rem var(--font-display); }
+    .opt:disabled { cursor: default; opacity: .96; }
+    .opt.right { border-color: #4CAF50; box-shadow: 0 0 0 2px #4CAF50 inset; }
+    .opt.wrong { border-color: var(--seat-red); box-shadow: 0 0 0 2px var(--seat-red) inset; opacity: .7; }
+
+    /* reveal */
+    .reveal-card { }
+    .reveal-verdict { font-family: var(--font-display); font-weight: 800; font-size: 1.1rem; margin-bottom: 12px; color: var(--butter); }
+    .reveal-body { display: grid; grid-template-columns: 84px 1fr; gap: 14px; align-items: start; text-align: left; }
+    .reveal-body img { border-radius: 8px; aspect-ratio: 3/4; object-fit: cover; }
+    .reveal-it { font-family: var(--font-display); font-size: 1.2rem; color: var(--cream); }
+    .reveal-it b { color: var(--butter); }
+    .reveal-one { font-size: .92rem; color: rgba(246,239,228,.72); margin-top: 8px; font-style: italic; }
+    .reveal-link { display: inline-block; margin-top: 10px; font-family: var(--font-display); font-weight: 700; color: var(--seat-red); text-decoration: none; }
+    .reveal-link:hover { color: var(--butter); }
+    .reveal .big-btn { width: 100%; margin-top: 18px; }
+    .reveal .cells { margin-top: 6px; }
+
+    /* end screen */
+    #end h2 { font-family: var(--font-display); font-weight: 800; font-size: 1.9rem; color: var(--cream); }
+    #end .end-msg, #end #end-msg { color: rgba(246,239,228,.78); margin-top: 6px; }
+    .end-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; align-items: center; margin-top: 18px; }
+    .end-news { margin-top: 16px; font-size: .9rem; }
+    .end-news a { color: var(--butter); font-weight: 600; }
+
+    /* share (mirrors the review-page control, tuned for dark) */
+    .share-btn { display: inline-flex; align-items: center; gap: 9px; font: 700 1rem var(--font-display);
+      background: transparent; color: var(--cream); border: 2px solid rgba(246,239,228,.4); border-radius: 12px;
+      padding: 13px 22px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .share-btn:hover { border-color: var(--butter); color: var(--butter); }
+    .share-menu { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; margin-top: 12px; }
+    .share-menu[hidden] { display: none; }
+    .share-opt { font: 600 .9rem var(--font-display); text-decoration: none; color: var(--cream);
+      background: rgba(246,239,228,.06); border: 1.5px solid rgba(246,239,228,.2); border-radius: 999px; padding: 8px 16px; cursor: pointer; }
+    .share-opt:hover { border-color: var(--butter); color: var(--butter); }
+    .share-done { font-family: var(--font-mono); font-size: .8rem; color: var(--butter); font-weight: 600; }
+
+    @media (max-width: 420px) {
+      .reveal-body { grid-template-columns: 68px 1fr; }
+    }
+  </style>
+
+  <section class="play-hero">
+    <h1>Movie <span>trivia</span></h1>
+    <p class="play-sub">Guess the film from the clue — every answer leads to the review.</p>
+  </section>
+
+  <main class="play-wrap">
+    <div id="start" class="panel">
+      <p>Five clues, drawn from the library. Get one right (or miss it) and you go straight to that review. How well do you know Avi's taste?</p>
+      <button id="start-btn" class="big-btn" type="button">Start the game</button>
+    </div>
+
+    <div id="game" class="game" hidden>
+      <div class="game-top">
+        <span id="q-progress"></span>
+        <span id="q-score"></span>
+      </div>
+      <p class="clue" id="clue"></p>
+      <div class="options" id="options"></div>
+      <div class="reveal" id="reveal" hidden></div>
+    </div>
+
+    <div id="end" class="panel" hidden>
+      <h2 id="end-title"></h2>
+      <p id="end-msg"></p>
+      <div class="end-actions">
+        <button id="again-btn" class="big-btn" type="button">Play again</button>
+        <div class="share" id="score-share" data-title="Movies with Avi trivia">
+          <button class="share-btn" id="share-btn" type="button" aria-expanded="false" aria-controls="share-menu">
+            <span class="share-ico" aria-hidden="true">📤</span> Share your score
+          </button>
+          <div class="share-menu" id="share-menu" role="group" aria-label="Ways to share" hidden>
+            <button class="share-opt" id="share-copy" type="button">Copy link</button>
+            <a class="share-opt" id="share-email" href="#">Email</a>
+            <a class="share-opt" id="share-wa" href="#" target="_blank" rel="noopener">WhatsApp</a>
+            <span class="share-done" id="share-done" role="status" aria-live="polite" hidden>Link copied ✓</span>
+          </div>
+        </div>
+      </div>
+      <p class="end-news"><a href="/#tonight">Not on the list yet? Get Avi's picks in your inbox →</a></p>
+    </div>
+
+    <p id="noq" class="panel" hidden>No trivia questions yet — check back soon.</p>
+  </main>
+
+  <script>
+    import { initTrivia } from '../lib/trivia.js';
+    initTrivia();
+  </script>
+</Base>

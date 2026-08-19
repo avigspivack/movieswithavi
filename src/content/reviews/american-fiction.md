@@ -11,6 +11,7 @@ categories: ["Comedy", "Family drama", "Great cast", "Oscar Winner"]
 tags: ["comedy", "family", "great cast", "Oscar winner"]
 image: "/posters/american-fiction.jpg"
 originalUrl: "https://movieswithavi.com/american-fiction/"
+trivia: "A frustrated novelist writes a book full of stereotypes as a joke — and it becomes a runaway hit."
 ---
 
 I am surprised it took me so long to see this one because it has most of the ingredients I look for: great cast, witty script, some hilarious notes, and a heavy dose of cultural commentary without crossing too many lines. The trailer doesn’t do the movie justice, focusing largely on the “blackness” of the centerpiece novel; the bigger story is the universal one of family, identity, our struggle to be authentic, finding our voice, and of accepting that there will always be a chasm between high art and mass consumption - and that is ok. Jeffrey Wright is spot on, Sterling K Brown is divine (he is worth the ticket price alone), and Cord Jefferson clearly has that rare talent for finding the thin line between humor and offense.

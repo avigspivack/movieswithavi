@@ -11,6 +11,7 @@ categories: ["Drama", "Great cast"]
 tags: ["drama", "great cast", "slow burn"]
 image: "/posters/conclave.jpg"
 originalUrl: "https://movieswithavi.com/conclave/"
+trivia: "Cardinals lock themselves away to elect a new pope, and the ballot count becomes a slow-burn thriller."
 ---
 
 This movie seemed to have a lot of buzz, some of it justified. While I will generally see anything with Ralph Fiennes (and Stanley Tucci for that matter), upon reflection, it didn’t really stick with me. There is great acting for sure, and a bit of an unexpected twist, but for some reason I wasn’t quite drawn to the archaic nature of the pope selection process and the relatively restrained reservation of decorum that is allowed among the many fathers. Isabella Rossellini shines, as always, and it’s definitely worth seeing, just temper your expectations based on the cast.
