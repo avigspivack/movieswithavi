@@ -13,6 +13,7 @@ export async function GET() {
     categories: r.data.categories,
     tags: r.data.tags,
     image: r.data.image,
+    trivia: r.data.trivia,
     deets: r.body,
   })).sort((a, b) => b.date.localeCompare(a.date));
   return new Response(JSON.stringify(lib), { headers: { 'Content-Type': 'application/json' } });

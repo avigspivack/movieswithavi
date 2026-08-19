@@ -11,6 +11,7 @@ categories: ["Comedy", "Drama"]
 tags: ["drama", "female lead", "mind-bending", "must see"]
 image: "/posters/poor-things.jpg"
 originalUrl: "https://movieswithavi.com/poor-things/"
+trivia: "A woman brought back to life by a mad-scientist experiment discovers the world in surreal, lavish fashion."
 ---
 
 Wow. This is a brilliant movie, a layered fantasy tale starring the sublime Emma Stone and created by Yorgos Lanthimos. I struggled to conjure the words needed to describe it; suffice it to say that you are enveloped in a world of magical visuals, incredible costumes, and in an indeterminate time. Swept away in a space imagined by Terry Gilliam, but with even more purpose and depth. You must see it for its sheer originality, and then you can decide what you take from it, and whether its beautiful lessons of life and living remain within you.

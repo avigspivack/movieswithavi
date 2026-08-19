@@ -144,6 +144,7 @@ app.post('/api/publish', express.json({ limit: '12mb' }), async (req, res) => {
       b.perfectFor ? `perfectFor: ${yq(b.perfectFor)}` : null,
       b.whereToWatch ? `whereToWatch: ${yq(b.whereToWatch)}` : null,
       b.foodPairing ? `foodPairing: ${yq(b.foodPairing)}` : null,
+      b.trivia ? `trivia: ${yq(b.trivia)}` : null,
       `categories: ${ylist(Array.isArray(b.categories) ? b.categories : [])}`,
       `tags: ${ylist(Array.isArray(b.tags) ? b.tags : [])}`,
       b.posterBase64 ? `image: ${yq(`/posters/${slug}.${b.posterExt || 'jpg'}`)}` : (b.imagePath ? `image: ${yq(b.imagePath)}` : null),

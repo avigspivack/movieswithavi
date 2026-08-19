@@ -17,6 +17,7 @@ const reviews = defineCollection({
     tags: z.array(z.string()).default([]),
     image: z.string().nullable().optional(),
     originalUrl: z.string().nullable().optional(),
+    trivia: z.string().nullable().optional(),   // a spoiler-light clue for the /play trivia game; answer is this movie
   }),
 });
 export const collections = { reviews };

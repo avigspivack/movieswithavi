@@ -131,6 +131,9 @@ button.ghost { background: #fff; color: var(--ink); border: 2px solid rgba(42,30
       </div>
     </div>
 
+    <label for="trivia">Trivia clue <em>(optional — powers the /play game)</em></label>
+    <input type="text" id="trivia" placeholder="Guess-the-movie clue, no title. e.g. Cardinals lock themselves away to elect a new pope…" />
+
     <label for="categories">Categories <em>(comma-separated)</em></label>
     <input autocomplete="off" type="text" id="categories" placeholder="Drama, Foreign" />
 
@@ -250,6 +253,7 @@ async function submit(asDraft) {
     perfectFor: $('perfectFor').value.trim(),
     whereToWatch: $('whereToWatch').value.trim(),
     foodPairing: $('foodPairing').value.trim(),
+    trivia: $('trivia').value.trim(),
     categories: $('categories').value.split(',').map(s => s.trim()).filter(Boolean),
     tags: $('tags').value.split(',').map(s => s.trim()).filter(Boolean),
     deets: $('deets').value.trim(),
