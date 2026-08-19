@@ -145,6 +145,9 @@ button.danger:active { background: var(--red); color: #fff; border-color: var(--
       </div>
     </div>
 
+    <label for="trivia">Trivia clue <em>(optional — powers the /play game)</em></label>
+    <input type="text" id="trivia" placeholder="Guess-the-movie clue, no title." />
+
     <label for="categories">Categories <em>(comma-separated)</em></label>
     <input autocomplete="off" type="text" id="categories" />
 
@@ -285,6 +288,7 @@ async function openEditor(item, isDraft) {
   $('perfectFor').value = d.perfectFor || '';
   $('whereToWatch').value = d.whereToWatch || '';
   $('foodPairing').value = d.foodPairing || '';
+  $('trivia').value = d.trivia || '';
   $('categories').value = (d.categories || []).join(', ');
   $('tags').value = (d.tags || []).join(', ');
 
@@ -359,6 +363,7 @@ async function submit(asDraft) {
     perfectFor: $('perfectFor').value.trim(),
     whereToWatch: $('whereToWatch').value.trim(),
     foodPairing: $('foodPairing').value.trim(),
+    trivia: $('trivia').value.trim(),
     categories: $('categories').value.split(',').map(s => s.trim()).filter(Boolean),
     tags: $('tags').value.split(',').map(s => s.trim()).filter(Boolean),
     deets: $('deets').value.trim(),
