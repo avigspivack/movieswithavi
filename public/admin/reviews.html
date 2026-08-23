@@ -97,6 +97,14 @@ button.danger:active { background: var(--red); color: #fff; border-color: var(--
     <p class="msg err" id="gate-err"></p>
   </div>
 
+  <div class="gate" id="server-err" style="display:none">
+    <h1>The <span>Vault</span></h1>
+    <p style="margin-top:8px"><b>Your key worked</b> — but the review list couldn't load.</p>
+    <p class="msg err" id="server-err-msg" style="white-space:normal"></p>
+    <p style="margin-top:8px;color:var(--soft);font-size:.9rem">This usually means <code>GITHUB_TOKEN</code> is missing or expired (or <code>GITHUB_REPO</code> / <code>GITHUB_BRANCH</code> is wrong). Fix it in Railway and redeploy, then retry.</p>
+    <button id="retry">Retry</button>
+  </div>
+
   <div id="list-view" style="display:none">
     <h1>The <span>Vault</span></h1>
     <p class="sub">Every review, live and in-progress. Tap one to edit — or <a href="/admin/publish">write a new one</a>.</p>
@@ -181,20 +189,60 @@ let posterData = null, posterExt = 'jpg', existingImage = null;
 const pretty = s => s.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
 // ---- gate ----
-async function openVault() {
-  const r = await fetch(`/api/admin/list?key=${encodeURIComponent(KEY)}`);
-  if (!r.ok) { sessionStorage.removeItem('avi-admin-key'); return false; }
+// Distinguish a genuinely wrong key (401) from a valid key that simply
+// couldn't load the review list — e.g. the GitHub token expired, so
+// /api/admin/list returns 500. Only a real 401 clears the shared admin
+// session; any other failure keeps you signed in (so the Booth/Write tabs
+// aren't logged out too) and shows the actual reason.
+async function fetchVault() {
+  let r;
+  try {
+    r = await fetch(`/api/admin/list?key=${encodeURIComponent(KEY)}`);
+  } catch {
+    return { ok: false, auth: false, msg: "Couldn't reach the server — is it up?" };
+  }
+  if (r.status === 401) return { ok: false, auth: true };
+  if (!r.ok) {
+    let msg = `The server returned an error (${r.status}).`;
+    try { const d = await r.json(); if (d && d.error) msg = d.error; } catch {}
+    return { ok: false, auth: false, msg };
+  }
   LIB = await r.json();
-  $('gate').style.display = 'none';
-  showList();
-  return true;
+  return { ok: true };
 }
-$('go').onclick = async () => {
-  KEY = $('key').value.trim();
-  if (await openVault()) sessionStorage.setItem('avi-admin-key', KEY);
-  else $('gate-err').textContent = 'Wrong key.';
-};
+
+function applyAuth(res) {
+  if (res.ok) {                              // key valid + list loaded
+    sessionStorage.setItem('avi-admin-key', KEY);
+    $('gate').style.display = 'none';
+    $('server-err').style.display = 'none';
+    showList();
+    return;
+  }
+  if (res.auth) {                            // genuinely wrong key
+    sessionStorage.removeItem('avi-admin-key');
+    KEY = '';
+    $('server-err').style.display = 'none';
+    $('list-view').style.display = 'none';
+    $('gate').style.display = '';
+    $('gate-err').textContent = 'Wrong key.';
+    return;
+  }
+  // Key is valid (it wasn't a 401), the list just couldn't load. Keep the
+  // shared session so the other tabs stay signed in; explain what broke.
+  sessionStorage.setItem('avi-admin-key', KEY);
+  $('gate').style.display = 'none';
+  $('list-view').style.display = 'none';
+  $('editor').style.display = 'none';
+  $('server-err-msg').textContent = res.msg || '';
+  $('server-err').style.display = '';
+}
+
+async function openVault() { applyAuth(await fetchVault()); }
+
+$('go').onclick = async () => { KEY = $('key').value.trim(); await openVault(); };
 $('key').addEventListener('keydown', e => { if (e.key === 'Enter') $('go').click(); });
+$('retry').addEventListener('click', openVault);
 if (KEY) openVault();
 
 // ---- list ----
