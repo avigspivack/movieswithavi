@@ -7,7 +7,10 @@ import path from 'node:path';
 
 const PORT = process.env.PORT || 3000;
 const DB_PATH = process.env.DB_PATH || './analytics.db'; // on Railway set DB_PATH=/data/analytics.db (volume)
-const ADMIN_KEY = process.env.ADMIN_KEY || '';
+// Trim the stored key: a trailing newline/space pasted into the host's env var
+// would otherwise never match the (already-trimmed) key typed in the admin UI.
+const ADMIN_KEY_RAW = process.env.ADMIN_KEY || '';
+const ADMIN_KEY = ADMIN_KEY_RAW.trim();
 
 const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
@@ -391,7 +394,16 @@ app.get('/api/taxonomy', (req, res) => {
 app.use(express.static(path.resolve('dist'), { extensions: ['html'] }));
 app.use((req, res) => res.status(404).sendFile(path.resolve('dist/404.html'), () => res.end('Not found')));
 
-const server = app.listen(PORT, () => console.log(`movieswithavi serving on :${PORT}, db at ${DB_PATH}`));
+const server = app.listen(PORT, () => {
+  console.log(`movieswithavi serving on :${PORT}, db at ${DB_PATH}`);
+  // Admin-auth diagnostics (never logs the key itself — only its presence/length).
+  if (!ADMIN_KEY) {
+    console.log('admin: ADMIN_KEY is NOT set on this server — every admin login will fail. Set it in the host env and redeploy.');
+  } else {
+    console.log(`admin: ADMIN_KEY loaded (length ${ADMIN_KEY.length}).`);
+    if (ADMIN_KEY_RAW !== ADMIN_KEY) console.log('admin: heads-up — the stored ADMIN_KEY had surrounding whitespace; trimmed it so logins match.');
+  }
+});
 
 // --- graceful shutdown -------------------------------------------------
 // Railway sends SIGTERM when a new deploy takes over. Without this, Node dies
