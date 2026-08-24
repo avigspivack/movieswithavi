@@ -1,6 +1,6 @@
 ---
 title: "The Silence of the Lambs"
-date: 2026-08-12
+date: 2026-08-24
 rating: "3.98/4 (aka Must be seen at least once.)"
 ratingNum: 3.98
 ratingText: "Must be seen at least once."
