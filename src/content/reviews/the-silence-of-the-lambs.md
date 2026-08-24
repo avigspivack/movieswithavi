@@ -8,6 +8,7 @@ oneLine: "An FBI agent in training hunts a serial killer."
 perfectFor: "If you want to watch one of the greatest crime drama thrillers ever."
 whereToWatch: "You can rent it on streaming everywhere except Netflix."
 foodPairing: "Stick with water."
+trivia: "All the way to the F B I."
 categories: ["Great cast", "Thriller", "Book adaptation", "Crime", "Oscar Winner"]
 tags: ["great cast", "thriller", "must see", "Oscar winner"]
 image: "/posters/the-silence-of-the-lambs.jpg"
