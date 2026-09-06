@@ -149,6 +149,9 @@ app.post('/api/publish', express.json({ limit: '12mb' }), async (req, res) => {
       b.foodPairing ? `foodPairing: ${yq(b.foodPairing)}` : null,
       b.trivia ? `trivia: ${yq(b.trivia)}` : null,
       `categories: ${ylist(Array.isArray(b.categories) ? b.categories : [])}`,
+      // Tags aren't authored anymore, but preserve any an existing review carries
+      // (passed through by the editor) so its recommender signal survives a re-save.
+      (Array.isArray(b.tags) && b.tags.length) ? `tags: ${ylist(b.tags)}` : null,
       b.posterBase64 ? `image: ${yq(`/posters/${slug}.${b.posterExt || 'jpg'}`)}` : (b.imagePath ? `image: ${yq(b.imagePath)}` : null),
       '---',
       '',
