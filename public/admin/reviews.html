@@ -159,9 +159,6 @@ button.danger:active { background: var(--red); color: #fff; border-color: var(--
     <label for="categories">Categories <em>(comma-separated)</em></label>
     <input autocomplete="off" type="text" id="categories" />
 
-    <label for="tags">Tags <em>(comma-separated)</em></label>
-    <input autocomplete="off" type="text" id="tags" />
-
     <label>Poster</label>
     <div class="poster" id="poster-box">
       <img id="poster-preview" style="display:none" alt="" />
@@ -338,7 +335,6 @@ async function openEditor(item, isDraft) {
   $('foodPairing').value = d.foodPairing || '';
   $('trivia').value = d.trivia || '';
   $('categories').value = (d.categories || []).join(', ');
-  $('tags').value = (d.tags || []).join(', ');
 
   if (existingImage) {
     $('poster-preview').src = existingImage;
@@ -413,7 +409,6 @@ async function submit(asDraft) {
     foodPairing: $('foodPairing').value.trim(),
     trivia: $('trivia').value.trim(),
     categories: $('categories').value.split(',').map(s => s.trim()).filter(Boolean),
-    tags: $('tags').value.split(',').map(s => s.trim()).filter(Boolean),
     deets: $('deets').value.trim(),
     posterBase64: posterData, posterExt,
     imagePath: posterData ? null : existingImage,
