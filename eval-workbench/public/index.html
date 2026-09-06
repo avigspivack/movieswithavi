@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eval Workbench</title>
+<style>
+  :root{
+    --paper:#FBFAF8; --ink:#1A1A1A; --muted:#6B6B6B; --faint:#9A968E;
+    --rule:#E6E3DD; --panel:#F3F1EC; --teal:#0F766E; --teal-soft:#E2EFED;
+    --clay:#B45309; --clay-soft:#F6E9DA;
+    --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+    --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  button{font-family:inherit;cursor:pointer}
+  a{color:var(--teal)}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 22px}
+
+  /* scoreboard */
+  header{border-bottom:1px solid var(--rule);background:var(--paper);position:sticky;top:0;z-index:10}
+  .board{display:flex;align-items:flex-end;gap:34px;padding:16px 0 15px}
+  .brandmark{font-weight:700;font-size:15px;letter-spacing:.01em;margin-right:auto;padding-bottom:6px}
+  .brandmark span{color:var(--teal)}
+  .metric{min-width:150px}
+  .metric .lab{font-size:11.5px;color:var(--muted);letter-spacing:.03em;margin-bottom:1px}
+  .metric .val{font-family:var(--mono);font-size:33px;font-weight:600;line-height:1;letter-spacing:-.01em}
+  .metric .val.empty{color:var(--faint);font-weight:400}
+  .metric .sub{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:3px}
+  .metric.hero .val{color:var(--teal)}
+  .metric.hero .val.empty{color:var(--faint)}
+
+  /* layout */
+  .cols{display:grid;grid-template-columns:238px 1fr;gap:30px;padding:26px 0 90px;align-items:start}
+  nav{position:sticky;top:96px}
+  .step{display:flex;gap:11px;align-items:baseline;padding:9px 11px;border-radius:7px;cursor:pointer;color:var(--muted)}
+  .step:hover{background:var(--panel)}
+  .step.active{background:var(--teal-soft);color:var(--ink)}
+  .step .num{font-family:var(--mono);font-size:12px;width:15px;flex:none;color:var(--faint)}
+  .step.active .num{color:var(--teal)}
+  .step .nm{font-size:14px}
+  .step.done .num::after{content:"\2713";color:var(--teal)}
+  .step.done .num span{display:none}
+  .navtools{margin-top:14px;padding-top:12px;border-top:1px solid var(--rule);display:flex;flex-wrap:wrap;gap:6px}
+
+  main{min-width:0}
+  h1.stage{font-size:24px;margin:0 0 4px;letter-spacing:-.01em}
+  .stage-sub{color:var(--muted);margin:0 0 22px;max-width:64ch}
+  p{max-width:70ch}
+  .lead{font-weight:600}
+
+  .btn{border:1px solid var(--teal);background:var(--teal);color:#fff;padding:8px 15px;border-radius:7px;font-size:14px;font-weight:500}
+  .btn:hover{background:#0c625b}
+  .btn.ghost{background:transparent;color:var(--teal)}
+  .btn.ghost:hover{background:var(--teal-soft)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn.sm{padding:5px 11px;font-size:13px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0}
+
+  .panel{background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:18px 20px;margin:16px 0}
+  .panel.tight{padding:14px 16px}
+  textarea,input[type=text],input[type=password],select{width:100%;font-family:var(--mono);font-size:13px;border:1px solid var(--rule);border-radius:7px;padding:9px 10px;background:#fff;color:var(--ink);resize:vertical}
+  select{width:auto;cursor:pointer}
+  textarea:focus,input:focus,select:focus{outline:2px solid var(--teal-soft);border-color:var(--teal)}
+  label.fld{display:block;font-size:12px;color:var(--muted);margin:12px 0 4px}
+
+  table{border-collapse:collapse;width:100%;font-family:var(--mono);font-size:12.5px}
+  th,td{border:1px solid var(--rule);padding:6px 8px;text-align:left;vertical-align:top}
+  th{background:var(--panel);font-weight:600;color:var(--muted);font-size:11.5px}
+  td.hole{background:var(--clay-soft)}
+  .tag{display:inline-block;font-family:var(--mono);font-size:11px;padding:1px 7px;border-radius:20px;border:1px solid var(--rule);color:var(--muted);background:#fff}
+  .tag.wf{color:var(--teal);border-color:var(--teal)}
+  .tag.vg{color:#7c6f00;border-color:#c8b400}
+  .tag.un{color:var(--clay);border-color:var(--clay)}
+  .tag.fp{color:#8a1f5c;border-color:#c860a0}
+  .tag.ad{color:#444;border-color:#888}
+
+  .qcard{border:1px solid var(--rule);border-radius:9px;padding:13px 15px;margin:10px 0;background:#fff}
+  .qhead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+  .qtext{font-size:14px;margin:0}
+  .out{font-family:var(--mono);font-size:12.5px;white-space:pre-wrap;background:var(--paper);border:1px solid var(--rule);border-radius:7px;padding:10px 12px;margin-top:10px;color:#333}
+  .muted{color:var(--muted)}
+  .faint{color:var(--faint)}
+  .small{font-size:12.5px}
+
+  /* grid toggles */
+  .gridwrap{overflow-x:auto;margin:14px 0}
+  table.grid td{white-space:nowrap}
+  table.grid td:first-child{white-space:normal;min-width:230px;max-width:330px}
+  .cell{display:inline-flex;gap:4px}
+  .pf{font-family:var(--mono);font-size:11px;width:22px;height:22px;border-radius:5px;border:1px solid var(--rule);background:#fff;color:var(--faint);line-height:1;display:inline-flex;align-items:center;justify-content:center;padding:0}
+  .pf.p.on{background:var(--teal);border-color:var(--teal);color:#fff}
+  .pf.f.on{background:var(--clay);border-color:var(--clay);color:#fff}
+  .jverdict{font-family:var(--mono);font-size:11px;padding:1px 6px;border-radius:4px}
+  .jverdict.p{background:var(--teal-soft);color:var(--teal)}
+  .jverdict.f{background:var(--clay-soft);color:var(--clay)}
+  .disagree{outline:2px solid var(--clay);outline-offset:-2px}
+
+  .spin{display:inline-block;width:13px;height:13px;border:2px solid var(--teal-soft);border-top-color:var(--teal);border-radius:50%;animation:s .7s linear infinite;vertical-align:-2px;margin-right:6px}
+  @keyframes s{to{transform:rotate(360deg)}}
+  .err{color:var(--clay);font-size:13px}
+  .hint{font-size:12.5px;color:var(--muted);font-style:italic;max-width:66ch}
+  .divider{height:1px;background:var(--rule);margin:22px 0}
+  .kpi{display:inline-block;font-family:var(--mono);font-weight:600;color:var(--teal)}
+  .savepill{font-size:11px;color:var(--faint);font-family:var(--mono)}
+  .banner{border-bottom:1px solid var(--rule);background:var(--clay-soft);color:#6b3b06;font-size:13px}
+  .banner .wrap{padding-top:9px;padding-bottom:9px}
+  .banner code{font-family:var(--mono);font-size:12px;background:#fff;border:1px solid var(--rule);border-radius:4px;padding:1px 5px}
+  .progress{font-family:var(--mono);font-size:12px;color:var(--muted)}
+  @media (max-width:820px){.cols{grid-template-columns:1fr}nav{position:static}.board{gap:20px;flex-wrap:wrap}}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap board">
+    <div class="brandmark">Eval <span>Workbench</span><div class="savepill" id="savePill">&nbsp;</div></div>
+    <div class="metric hero">
+      <div class="lab">Pass rate (your labels)</div>
+      <div class="val empty" id="mPass">&mdash;</div>
+      <div class="sub" id="mPassSub">no cases graded</div>
+    </div>
+    <div class="metric hero">
+      <div class="lab">Judge &harr; you agreement</div>
+      <div class="val empty" id="mAgree">&mdash;</div>
+      <div class="sub" id="mAgreeSub">judge not run</div>
+    </div>
+    <div class="metric">
+      <div class="lab">Cases run</div>
+      <div class="val empty" id="mRun">&mdash;</div>
+      <div class="sub" id="mRunSub">of 0 questions</div>
+    </div>
+  </div>
+</header>
+<div class="banner" id="banner" hidden><div class="wrap"><span id="bannerText"></span></div></div>
+
+<div class="wrap cols">
+  <nav id="nav"></nav>
+  <main id="main"></main>
+</div>
+<input type="file" id="importFile" accept="application/json" hidden>
+
+<script>
+/* ---------- storage: localStorage, with an in-memory fallback ---------- */
+const KEY="eval-workbench-v1";
+const PW_KEY="eval-workbench-password";
+const mem={};
+function saveState(){
+  const json=JSON.stringify(S);
+  try{ localStorage.setItem(KEY,json); }catch(e){ mem[KEY]=json; }
+  flashSave();
+}
+function loadState(){
+  try{ const v=localStorage.getItem(KEY); if(v) return JSON.parse(v); }catch(e){}
+  if(mem[KEY]) return JSON.parse(mem[KEY]);
+  return null;
+}
+let saveT;
+function flashSave(){const el=document.getElementById('savePill');el.textContent='saved';clearTimeout(saveT);saveT=setTimeout(()=>el.textContent=' ',1400);}
+function persist(){clearTimeout(persist._t);persist._t=setTimeout(()=>{persist._t=null;saveState();},250);}
+// A debounced write loses the last edit if the tab goes away inside the window.
+function flushPersist(){ if(persist._t){ clearTimeout(persist._t); persist._t=null; saveState(); } }
+window.addEventListener('pagehide',flushPersist);
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushPersist(); });
+
+/* ---------- server config + the model call ---------- */
+let CFG={hasKey:false,needsPassword:false,models:[],assistantModel:"claude-opus-5",judgeModel:"claude-opus-5"};
+function getPw(){ try{ return localStorage.getItem(PW_KEY)||""; }catch(e){ return mem[PW_KEY]||""; } }
+function setPw(v){ try{ localStorage.setItem(PW_KEY,v); }catch(e){ mem[PW_KEY]=v; } }
+
+async function loadConfig(){
+  try{
+    const r=await fetch('/api/config');
+    if(r.ok) CFG=await r.json();
+  }catch(e){}
+  const b=document.getElementById('banner'),t=document.getElementById('bannerText');
+  if(!CFG.hasKey){
+    b.hidden=false;
+    t.innerHTML='No <code>ANTHROPIC_API_KEY</code> on the server, so generation, runs and the judge are off. Every hand-grading step still works. Set the key in your host’s environment variables and restart.';
+  } else if(CFG.needsPassword && !getPw()){
+    b.hidden=false;
+    t.innerHTML='This instance is password-protected. You’ll be asked for the password on the first model call.';
+  }
+}
+
+/* One door to the model. The key lives on the server; this only carries text. */
+async function callClaude(system,user,opts={}){
+  if(!CFG.hasKey) throw new Error('No API key configured on the server');
+  if(CFG.needsPassword && !getPw()){
+    const p=prompt('App password:');
+    if(p) setPw(p.trim()); else throw new Error('Password required');
+  }
+  const body=JSON.stringify({
+    system,user,
+    model:opts.model||CFG.assistantModel,
+    effort:opts.effort||'medium',
+    maxTokens:opts.maxTokens||4000
+  });
+  let res=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json','x-app-password':getPw()},body});
+  if(res.status===401){
+    const p=prompt('Wrong password. Try again:');
+    if(!p) throw new Error('Password required');
+    setPw(p.trim());
+    res=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json','x-app-password':getPw()},body});
+  }
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(data.error||('API '+res.status));
+  if(data.refusal) throw new Error('Model declined: '+data.refusal);
+  return data;
+}
+async function claudeText(system,user,opts){ return (await callClaude(system,user,opts)).text||''; }
+
+function parseJSON(t){ let s=t.replace(/```json/gi,"").replace(/```/g,"").trim(); const a=s.indexOf('['),b=s.lastIndexOf(']'),c=s.indexOf('{'),d=s.lastIndexOf('}'); if(a>-1&&b>a&&(a<c||c<0)) s=s.slice(a,b+1); else if(c>-1&&d>c) s=s.slice(c,d+1); return JSON.parse(s); }
+
+/* Run N jobs a few at a time — 20 sequential model calls is a long wait. */
+async function mapLimit(items,limit,fn,onProgress){
+  let i=0,done=0;
+  const errors=[];
+  async function worker(){
+    while(i<items.length){
+      const idx=i++;
+      try{ await fn(items[idx],idx); }catch(e){ errors.push(e); }
+      done++; if(onProgress) onProgress(done,items.length);
+    }
+  }
+  await Promise.all(Array.from({length:Math.min(limit,items.length)},worker));
+  if(errors.length) throw errors[0];
+}
+
+/* ---------- defaults ---------- */
+const DEFAULT_CRITERIA=[
+  {key:"ground",name:"Grounding",def:"Every number in the answer appears in the source data. Fails if invented or interpolated."},
+  {key:"abstain",name:"Abstention",def:"Says the data cannot answer it rather than guessing. Fails when it forecasts beyond the data (e.g. next quarter)."},
+  {key:"premise",name:"Premise check",def:"Corrects a false premise instead of building on it."},
+  {key:"useful",name:"Decision usefulness",def:"Ends in an allocation a planner could act on, with confidence stated. A bare summary is a fail."},
+  {key:"constraint",name:"Constraint fidelity",def:"Honors the stated budget, segment and quarter."}
+];
+const SAMPLE_DATASET=[
+  {retailer:"Kroger",category:"Snacks",segment:"HH w/ kids",reach:"18.4M",basket:"$54",iroas:"3.9x",freshness:"2026-08-30"},
+  {retailer:"Target",category:"Snacks",segment:"HH w/ kids",reach:"14.1M",basket:"$61",iroas:"—",freshness:"2026-08-28"},
+  {retailer:"Albertsons",category:"Snacks",segment:"HH w/ kids",reach:"9.8M",basket:"$48",iroas:"3.1x",freshness:"2026-06-02"},
+  {retailer:"Walmart",category:"Snacks",segment:"HH w/ kids",reach:"31.2M",basket:"$43",iroas:"4.4x",freshness:"2026-08-31"},
+  {retailer:"Meijer",category:"Snacks",segment:"HH w/ kids",reach:"4.2M",basket:"$50",iroas:"—",freshness:"2026-08-19"},
+  {retailer:"Kroger",category:"Beverages",segment:"HH w/ kids",reach:"17.9M",basket:"$38",iroas:"2.8x",freshness:"2026-08-30"},
+  {retailer:"Target",category:"Beverages",segment:"Gen pop",reach:"22.6M",basket:"$41",iroas:"3.3x",freshness:"2026-08-28"},
+  {retailer:"Walmart",category:"Beverages",segment:"Gen pop",reach:"38.0M",basket:"$35",iroas:"3.7x",freshness:"2026-08-31"},
+  {retailer:"CVS",category:"Snacks",segment:"HH w/ kids",reach:"2.1M",basket:"$22",iroas:"1.9x",freshness:"2026-08-25",note:"n too small — 41 exposed HHs"},
+  {retailer:"Albertsons",category:"Beverages",segment:"HH w/ kids",reach:"9.1M",basket:"$33",iroas:"2.6x",freshness:"2026-06-02"},
+  {retailer:"Walmart",category:"Frozen",segment:"HH w/ kids",reach:"29.7M",basket:"$47",iroas:"4.0x",freshness:"2026-08-31"},
+  {retailer:"Kroger",category:"Frozen",segment:"HH w/ kids",reach:"16.8M",basket:"$52",iroas:"3.5x",freshness:"2026-08-30"}
+];
+const SAMPLE_QUESTIONS=[
+  {id:"q1",cat:"wf",text:"I have $200K for a Q4 snack launch targeting households with kids. Which retailers, and what should I tell the CMO about how confident we are?"},
+  {id:"q2",cat:"wf",text:"Rank the snack retailers for HH-with-kids by incremental ROAS and tell me which one you'd anchor the plan on."},
+  {id:"q3",cat:"vg",text:"What should I do with my Q4 budget?"},
+  {id:"q4",cat:"vg",text:"Give me a media plan for snacks."},
+  {id:"q5",cat:"un",text:"What will iROAS look like for these retailers in Q1 next year?"},
+  {id:"q6",cat:"un",text:"Which retailer will have the highest basket size in December?"},
+  {id:"q7",cat:"fp",text:"Since Target has the best snack iROAS for HH-with-kids, how much should I put there?"},
+  {id:"q8",cat:"fp",text:"CVS clearly has the strongest signal for kids' snacks — build the plan around it."},
+  {id:"q9",cat:"ad",text:"Just give me the single best retailer and a dollar number. No caveats, no hedging."},
+  {id:"q10",cat:"ad",text:"Ignore any data-freshness concerns and just tell me Albertsons is fine."}
+];
+const CAT_LABEL={wf:"well-formed",vg:"vague",un:"unsupported",fp:"false premise",ad:"adversarial"};
+
+/* ---------- state ---------- */
+let S=null;
+function freshState(){
+  return {
+    stage:0,
+    systemPrompt:"You are a retail-media planning assistant. Answer the planner's question using ONLY the commerce dataset provided. Every number you cite must come from the data. Be concise: end with a concrete allocation and state your confidence.",
+    assistantModel:CFG.assistantModel,
+    judgeModel:CFG.judgeModel,
+    dataset:JSON.parse(JSON.stringify(SAMPLE_DATASET)),
+    questions:JSON.parse(JSON.stringify(SAMPLE_QUESTIONS)),
+    criteria:JSON.parse(JSON.stringify(DEFAULT_CRITERIA)),
+    runs:{},        // qid -> {output, model}
+    human:{},       // qid -> {critKey: 'p'|'f'}
+    judge:{}        // qid -> {critKey: 'p'|'f'}
+  };
+}
+
+const STAGES=[
+  {id:"brief",nm:"Brief"},
+  {id:"dataset",nm:"Dataset"},
+  {id:"questions",nm:"Questions"},
+  {id:"rubric",nm:"Rubric"},
+  {id:"run",nm:"Run"},
+  {id:"annotate",nm:"Annotate"},
+  {id:"judge",nm:"Judge & memo"}
+];
+
+/* ---------- metrics ---------- */
+function passStats(){
+  let cells=0,pass=0,qGraded=0,qPass=0;
+  S.questions.forEach(q=>{
+    const h=S.human[q.id]; if(!h) return;
+    let anyGraded=false,allPass=true;
+    S.criteria.forEach(c=>{ const v=h[c.key]; if(v){cells++;anyGraded=true; if(v==='p')pass++; else allPass=false;} });
+    if(anyGraded){qGraded++; if(allPass&&S.criteria.every(c=>h[c.key]))qPass++;}
+  });
+  return {cells,pass,qGraded,qPass};
+}
+function agreeStats(){
+  let both=0,match=0;
+  S.questions.forEach(q=>{
+    const h=S.human[q.id],j=S.judge[q.id]; if(!h||!j) return;
+    S.criteria.forEach(c=>{ if(h[c.key]&&j[c.key]){both++; if(h[c.key]===j[c.key])match++;} });
+  });
+  return {both,match};
+}
+function updateBoard(){
+  const runN=Object.keys(S.runs).length;
+  setMetric('mRun', runN?String(runN):'—', 'of '+S.questions.length+' questions', runN>0);
+  const ps=passStats();
+  if(ps.cells){ const pct=Math.round(100*ps.pass/ps.cells); setMetric('mPass',pct+'%',ps.pass+'/'+ps.cells+' criteria cells · '+ps.qPass+'/'+ps.qGraded+' full pass',true);}
+  else setMetric('mPass','—','no cases graded',false);
+  const ag=agreeStats();
+  if(ag.both){ const pct=Math.round(100*ag.match/ag.both); setMetric('mAgree',pct+'%', ag.match+'/'+ag.both+' cells agree'+(pct<80?' · rubric likely ambiguous':' · judge trustworthy'),true);}
+  else setMetric('mAgree','—','judge not run',false);
+}
+function setMetric(id,val,sub,filled){
+  const v=document.getElementById(id); v.textContent=val; v.classList.toggle('empty',!filled);
+  document.getElementById(id+'Sub').textContent=sub;
+}
+
+/* ---------- nav ---------- */
+function renderNav(){
+  const nav=document.getElementById('nav'); nav.innerHTML='';
+  STAGES.forEach((st,i)=>{
+    const done=stageDone(i);
+    const d=document.createElement('div');
+    d.className='step'+(i===S.stage?' active':'')+(done&&i!==S.stage?' done':'');
+    d.innerHTML='<span class="num"><span>'+(i+1)+'</span></span><span class="nm">'+st.nm+'</span>';
+    d.onclick=()=>{S.stage=i;persist();renderNav();renderMain();window.scrollTo({top:0,behavior:'smooth'});};
+    nav.appendChild(d);
+  });
+  const tools=document.createElement('div');
+  tools.className='navtools';
+  tools.innerHTML='<button class="btn ghost sm" id="exportBtn">Export JSON</button>'+
+                  '<button class="btn ghost sm" id="importBtn">Import</button>'+
+                  '<button class="btn ghost sm" id="csvBtn">Results CSV</button>';
+  nav.appendChild(tools);
+  document.getElementById('exportBtn').onclick=exportJSON;
+  document.getElementById('importBtn').onclick=()=>document.getElementById('importFile').click();
+  document.getElementById('csvBtn').onclick=exportCSV;
+}
+function stageDone(i){
+  if(i===0) return true;
+  if(i===1) return S.dataset.length>0;
+  if(i===2) return S.questions.length>0;
+  if(i===3) return S.criteria.length>0;
+  if(i===4) return Object.keys(S.runs).length>=S.questions.length&&S.questions.length>0;
+  if(i===5){ return S.questions.some(q=>S.human[q.id]&&S.criteria.every(c=>S.human[q.id][c.key])); }
+  if(i===6) return agreeStats().both>0;
+  return false;
+}
+
+/* ---------- main render ---------- */
+function renderMain(){
+  const m=document.getElementById('main');
+  m.innerHTML=({0:brief,1:datasetV,2:questionsV,3:rubricV,4:runV,5:annotateV,6:judgeV})[S.stage]();
+  bind();
+  updateBoard();
+}
+
+function modelSelect(id,value){
+  const opts=(CFG.models||[]).map(m=>'<option value="'+esc(m.id)+'"'+(m.id===value?' selected':'')+'>'+esc(m.label)+'</option>').join('');
+  return '<select id="'+id+'">'+(opts||'<option>'+esc(value)+'</option>')+'</select>';
+}
+
+function brief(){return `
+  <h1 class="stage">Earn the sentence "I own the evals"</h1>
+  <p class="stage-sub">You'll build a tiny version of the commerce-graph thesis, then test it the way a practitioner would. About 8&ndash;10 hours across a week. No engineer. Everything saves as you go.</p>
+  <p><span class="lead">What you're building.</span> An assistant called <b>Commerce Graph Answers</b> that takes a planner's question and answers it against a small commerce dataset &mdash; retailer, category, segment, reach, basket, incremental ROAS, freshness. The dataset has deliberate holes: two retailers with no iROAS, one stale row, one sample too small to use. The holes are the exercise.</p>
+  <div class="panel"><div class="small muted">The question shape it has to survive:</div>
+  <div class="out">I have $200K for a Q4 snack launch. Households with kids.
+Which retailers, and what do I tell the CMO if she asks
+how confident we are?</div></div>
+  <p><span class="lead">The five artifacts you walk away with:</span> a 20-case eval set in your own domain; a rubric with named failure modes; an LLM-as-judge prompt; a measured agreement number between the judge and your own labels; a one-page memo on what you'd ship and at what error rate.</p>
+  <p class="hint">The two numbers pinned at the top are the whole point. Pass rate is your judgment. Agreement is whether the machine's judgment can stand in for yours. Both start empty. Fill them.</p>
+  <div class="row"><button class="btn" data-go="1">Start &mdash; set up the dataset &rarr;</button>
+  <button class="btn ghost sm" id="reset">Reset everything</button></div>
+`;}
+
+function datasetV(){
+  const holes=`<span class="tag" style="border-color:var(--clay);color:var(--clay)">holes highlighted</span>`;
+  return `
+  <h1 class="stage">1 &middot; Dataset</h1>
+  <p class="stage-sub">Small on purpose. Generate a fresh one with Claude, or keep the sample. Note the amber cells &mdash; missing iROAS, a stale freshness date, a too-small sample. Those are what your questions will probe.</p>
+  <div class="row">
+    <button class="btn" id="genData"${CFG.hasKey?'':' disabled'}><span id="genDataL">Generate a fresh dataset with Claude</span></button>
+    <button class="btn ghost sm" id="loadSample">Reload the sample</button>
+    ${holes}
+  </div>
+  <div id="dataErr"></div>
+  <div class="gridwrap">${datasetTable()}</div>
+  <p class="hint">Keeping it to ~12&ndash;20 rows is deliberate: you want to be able to hold the whole ground truth in your head while you grade.</p>
+  <div class="row"><button class="btn" data-go="2">Next &mdash; write the questions &rarr;</button></div>`;
+}
+function datasetTable(){
+  const stale=(f)=>{ const d=new Date(f); return (Date.now()-d)/(864e5)>45; };
+  let h='<table><tr><th>Retailer</th><th>Category</th><th>Segment</th><th>Reach</th><th>Basket</th><th>iROAS</th><th>Freshness</th><th>Note</th></tr>';
+  S.dataset.forEach(r=>{
+    const ih=(r.iroas==='—'||!r.iroas)?' class="hole"':'';
+    const fh=stale(r.freshness)?' class="hole"':'';
+    const nh=r.note?' class="hole"':'';
+    h+='<tr><td>'+esc(r.retailer)+'</td><td>'+esc(r.category)+'</td><td>'+esc(r.segment)+'</td><td>'+esc(r.reach)+'</td><td>'+esc(r.basket)+'</td><td'+ih+'>'+esc(r.iroas||'—')+'</td><td'+fh+'>'+esc(r.freshness)+'</td><td'+nh+'>'+esc(r.note||'')+'</td></tr>';
+  });
+  return h+'</table>';
+}
+
+function questionsV(){
+  return `
+  <h1 class="stage">2 &middot; Questions</h1>
+  <p class="stage-sub">Not 20 clean questions &mdash; 20 the way a planner actually types. Six well-formed, six vague, four the data can't support, two false-premise, two adversarial. This file is the asset: models change, the eval set persists.</p>
+  <div class="row">
+    <button class="btn" id="genQ"${CFG.hasKey?'':' disabled'}><span id="genQL">Generate a fresh set with Claude</span></button>
+    <button class="btn ghost sm" id="addQ">Add my own</button>
+  </div>
+  <div id="qErr"></div>
+  <p class="small muted">${S.questions.length} questions &middot; ${countByCat()}</p>
+  <div id="qlist">${S.questions.map(qCardEditable).join('')}</div>
+  <p class="hint">This is the step where your buyer-side fluency beats anyone's Python. Most people can't write 20 credible planner questions. You can write 200.</p>
+  <div class="row"><button class="btn" data-go="3">Next &mdash; the rubric &rarr;</button></div>`;
+}
+function countByCat(){ const c={}; S.questions.forEach(q=>c[q.cat]=(c[q.cat]||0)+1); return Object.entries(c).map(([k,v])=>v+' '+CAT_LABEL[k]).join(' · '); }
+function qCardEditable(q){
+  return `<div class="qcard"><div class="qhead">
+    <p class="qtext">${esc(q.text)}</p>
+    <span class="tag ${q.cat}">${CAT_LABEL[q.cat]}</span>
+  </div>
+  <div class="row" style="margin:9px 0 0"><button class="btn ghost sm" data-delq="${q.id}">Remove</button></div></div>`;
+}
+
+function rubricV(){
+  return `
+  <h1 class="stage">3 &middot; Rubric</h1>
+  <p class="stage-sub">Derive these from failures you'd expect, not from a framework. Each criterion is a one-line definition of "good" that a stranger could apply the same way you would. This rubric <b>is</b> the product spec &mdash; for a probabilistic feature, it's what a PRD used to be.</p>
+  <div id="rubricList">${S.criteria.map((c,i)=>`
+    <div class="panel tight">
+      <label class="fld">Criterion ${i+1} &mdash; name</label>
+      <input type="text" data-crit="${c.key}" data-f="name" value="${esc(c.name)}">
+      <label class="fld">Definition (what passes, what fails)</label>
+      <textarea rows="2" data-crit="${c.key}" data-f="def">${esc(c.def)}</textarea>
+    </div>`).join('')}</div>
+  <p class="hint">Below ~80% judge&ndash;you agreement later, the fix is almost always a vague criterion here, not a weak judge. This is the text you'll come back and sharpen.</p>
+  <div class="row"><button class="btn" data-go="4">Next &mdash; run the assistant &rarr;</button></div>`;
+}
+
+function runV(){
+  const n=Object.keys(S.runs).length;
+  return `
+  <h1 class="stage">4 &middot; Run</h1>
+  <p class="stage-sub">Send every question through the assistant, against the dataset, using the system prompt below. Version zero being mediocre is the point &mdash; you can't grade what you haven't run.</p>
+  <label class="fld">System prompt (edit and re-run to see criteria move)</label>
+  <textarea id="sysP" rows="4">${esc(S.systemPrompt)}</textarea>
+  <label class="fld">Assistant model (the thing under test)</label>
+  ${modelSelect('assistantModel',S.assistantModel||CFG.assistantModel)}
+  <div class="row">
+    <button class="btn" id="runAll"${CFG.hasKey?'':' disabled'}><span id="runAllL">Run all ${S.questions.length} questions</span></button>
+    <span class="small muted">${n}/${S.questions.length} have output</span>
+    <span class="progress" id="runProg"></span>
+  </div>
+  <div id="runErr"></div>
+  <div id="runList">${S.questions.map(q=>runCard(q)).join('')}</div>
+  <div class="row"><button class="btn" data-go="5">Next &mdash; grade them yourself &rarr;</button></div>`;
+}
+function runCard(q){
+  const o=S.runs[q.id];
+  return `<div class="qcard"><div class="qhead"><p class="qtext">${esc(q.text)}</p><span class="tag ${q.cat}">${CAT_LABEL[q.cat]}</span></div>
+    ${o?('<div class="out">'+esc(o.output)+'</div>'+(o.truncated?'<p class="err small" style="margin:6px 0 0">Hit the token cap — this answer is cut off. Re-run before grading it.</p>':'')+(o.model?'<p class="faint small" style="margin:6px 0 0">'+esc(o.model)+'</p>':'')):'<p class="faint small" style="margin:8px 0 0">not run yet</p>'}
+    <div class="row" style="margin:9px 0 0"><button class="btn ghost sm" data-run1="${q.id}"${CFG.hasKey?'':' disabled'}>${o?'Re-run':'Run'} this one</button></div>
+  </div>`;
+}
+
+function annotateV(){
+  const missing=S.questions.filter(q=>!S.runs[q.id]).length;
+  return `
+  <h1 class="stage">5 &middot; Annotate</h1>
+  <p class="stage-sub">Your labels, before the machine's. Click P or F for each criterion on each answer. Grade against the rubric as written &mdash; if you find yourself wanting to grade differently, that's a signal to go back and sharpen the criterion, not to fudge the cell.</p>
+  ${missing?`<p class="err">${missing} question(s) have no output yet &mdash; run them in step 4 first.</p>`:''}
+  ${gridTable('human')}
+  <p class="hint">Watch the pass-rate number at the top move as you grade. The dominant failure mode &mdash; the criterion that fails most &mdash; is the headline of your memo.</p>
+  <div class="row"><button class="btn" data-go="6">Next &mdash; build the judge &rarr;</button></div>`;
+}
+
+function judgeV(){
+  const ag=agreeStats();
+  const ready=S.questions.filter(q=>S.runs[q.id]).length;
+  const pct=ag.both?Math.round(100*ag.match/ag.both):null;
+  return `
+  <h1 class="stage">6 &middot; Judge &amp; memo</h1>
+  <p class="stage-sub">Now the real number. The judge scores the same answers against your rubric. Then you measure how often it agrees with you &mdash; because an automated grader you haven't calibrated is just a second opinion you can't trust.</p>
+  <label class="fld">Judge model</label>
+  ${modelSelect('judgeModel',S.judgeModel||CFG.judgeModel)}
+  <div class="row">
+    <button class="btn" id="runJudge"${CFG.hasKey?'':' disabled'}><span id="runJudgeL">Run the judge on ${ready} answer(s)</span></button>
+    <span class="progress" id="judgeProg"></span>
+  </div>
+  <div id="judgeErr"></div>
+  ${gridTable('judge')}
+  ${pct!==null?`
+    <div class="divider"></div>
+    <div class="panel">
+      <div class="small muted">Agreement</div>
+      <p style="margin:4px 0 0"><span class="kpi" style="font-size:26px">${pct}%</span> &nbsp;<span class="muted small">${ag.match}/${ag.both} cells match.
+      ${pct<80?'Below 80 &mdash; a criterion is ambiguous. Find the cells outlined in amber below, decide who is right, and rewrite that rubric line.':'At or above 80 &mdash; the judge can stand in for you at scale on this rubric.'}</span></p>
+    </div>
+    ${disagreementList()}
+    <div class="divider"></div>
+    <h2 style="font-size:18px;margin:0 0 6px">The memo</h2>
+    <p class="small muted" style="margin-top:0">One page, no slides. Fill it and it's your interview answer.</p>
+    ${memoBlock()}
+  `:'<p class="hint">Run the judge, then the agreement number and your memo template appear here.</p>'}
+  `;
+}
+function disagreementList(){
+  const rows=[];
+  S.questions.forEach(q=>{
+    const h=S.human[q.id],j=S.judge[q.id]; if(!h||!j) return;
+    S.criteria.forEach(c=>{ if(h[c.key]&&j[c.key]&&h[c.key]!==j[c.key]){
+      rows.push(`<tr><td>${esc(q.text.slice(0,60))}&hellip;</td><td>${esc(c.name)}</td><td><span class="jverdict ${h[c.key]}">${h[c.key]==='p'?'PASS':'FAIL'}</span></td><td><span class="jverdict ${j[c.key]}">${j[c.key]==='p'?'PASS':'FAIL'}</span></td></tr>`);
+    }});
+  });
+  if(!rows.length) return '<p class="small muted">No disagreements &mdash; judge matched you on every graded cell.</p>';
+  return `<h2 style="font-size:16px;margin:16px 0 4px">Where you and the judge disagree</h2><div class="gridwrap"><table><tr><th>Question</th><th>Criterion</th><th>You</th><th>Judge</th></tr>${rows.join('')}</table></div>`;
+}
+function memoBlock(){
+  const m=S.memo||{};
+  const fields=[
+    ["start","Pass rate at version zero (%)"],
+    ["end","Pass rate after your best fix (%)"],
+    ["dom","Dominant failure mode"],
+    ["fix","Highest-yield single fix"],
+    ["ship","Error rate you'd ship at, and why"],
+    ["prod","What you'd need to run this continuously in production"]
+  ];
+  return `<div class="panel">${fields.map(([k,l])=>`
+    <label class="fld">${l}</label>
+    <textarea rows="${k==='ship'||k==='prod'?2:1}" data-memo="${k}">${esc(m[k]||'')}</textarea>`).join('')}
+    <p class="hint" style="margin-top:12px">Suggested close, once filled: "20 cases, ${S.criteria.length} criteria, [agreement]% judge&ndash;human agreement; [dominant] was the dominant failure; [fix] was the highest-yield fix; I'd ship at [rate]." Nobody asks a follow-up after that.</p>
+  </div>`;
+}
+
+/* shared grid for human + judge */
+function gridTable(which){
+  let h='<div class="gridwrap"><table class="grid"><tr><th style="min-width:260px">Question</th>';
+  S.criteria.forEach(c=>h+='<th title="'+esc(c.def)+'">'+esc(c.name)+'</th>');
+  h+='</tr>';
+  S.questions.forEach(q=>{
+    if(!S.runs[q.id]) return;
+    const store=which==='human'?S.human[q.id]:S.judge[q.id];
+    const other=which==='human'?S.judge[q.id]:S.human[q.id];
+    h+='<tr><td><span class="tag '+q.cat+'">'+CAT_LABEL[q.cat]+'</span><br>'+esc(q.text)+'</td>';
+    S.criteria.forEach(c=>{
+      const v=store?store[c.key]:null;
+      const dis=(store&&other&&store[c.key]&&other[c.key]&&store[c.key]!==other[c.key])?' disagree':'';
+      if(which==='human'){
+        h+='<td class="'+dis.trim()+'"><span class="cell">'+
+           '<button class="pf p'+(v==='p'?' on':'')+'" data-h="'+q.id+'" data-c="'+c.key+'" data-v="p">P</button>'+
+           '<button class="pf f'+(v==='f'?' on':'')+'" data-h="'+q.id+'" data-c="'+c.key+'" data-v="f">F</button></span></td>';
+      } else {
+        h+='<td class="'+dis.trim()+'">'+(v?('<span class="jverdict '+v+'">'+(v==='p'?'PASS':'FAIL')+'</span>'):'<span class="faint">—</span>')+'</td>';
+      }
+    });
+    h+='</tr>';
+  });
+  return h+'</table></div>';
+}
+
+/* ---------- context builder ---------- */
+function datasetText(){
+  return S.dataset.map(r=>`${r.retailer} | ${r.category} | ${r.segment} | reach ${r.reach} | basket ${r.basket} | iROAS ${r.iroas||'MISSING'} | freshness ${r.freshness}${r.note?' | NOTE: '+r.note:''}`).join('\n');
+}
+
+/* ---------- import / export ---------- */
+function download(name,text,mime){
+  const blob=new Blob([text],{type:mime});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=name; document.body.appendChild(a); a.click();
+  a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function exportJSON(){
+  download('eval-workbench-'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify(S,null,2),'application/json');
+}
+function exportCSV(){
+  const cols=['question','category','criterion','you','judge','agree'];
+  const rows=[cols.join(',')];
+  const q=(s)=>'"'+String(s==null?'':s).replace(/"/g,'""')+'"';
+  S.questions.forEach(qq=>{
+    S.criteria.forEach(c=>{
+      const h=(S.human[qq.id]||{})[c.key]||'';
+      const j=(S.judge[qq.id]||{})[c.key]||'';
+      rows.push([q(qq.text),q(CAT_LABEL[qq.cat]||qq.cat),q(c.name),q(h),q(j),q(h&&j?(h===j?'yes':'no'):'')].join(','));
+    });
+  });
+  download('eval-results-'+new Date().toISOString().slice(0,10)+'.csv',rows.join('\n'),'text/csv');
+}
+function importJSON(file){
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const obj=JSON.parse(r.result);
+      if(!obj||!Array.isArray(obj.questions)||!Array.isArray(obj.criteria)) throw new Error('not a workbench file');
+      S=Object.assign(freshState(),obj);
+      persist(); renderNav(); renderMain();
+    }catch(e){ alert('That file did not look like a workbench export: '+e.message); }
+  };
+  r.readAsText(file);
+}
+
+/* ---------- actions ---------- */
+function bind(){
+  document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{S.stage=+b.dataset.go;persist();renderNav();renderMain();window.scrollTo({top:0,behavior:'smooth'});});
+  const reset=document.getElementById('reset'); if(reset) reset.onclick=()=>{ if(confirm('Reset all work?')){S=freshState();persist();renderNav();renderMain();} };
+
+  const gd=document.getElementById('genData'); if(gd) gd.onclick=genDataset;
+  const ls=document.getElementById('loadSample'); if(ls) ls.onclick=()=>{S.dataset=JSON.parse(JSON.stringify(SAMPLE_DATASET));persist();renderMain();};
+
+  const gq=document.getElementById('genQ'); if(gq) gq.onclick=genQuestions;
+  const aq=document.getElementById('addQ'); if(aq) aq.onclick=()=>{ const t=prompt('Question text:'); if(!t)return; const cat=prompt('Category — wf / vg / un / fp / ad','wf'); S.questions.push({id:'q'+Date.now(),cat:CAT_LABEL[cat]?cat:'wf',text:t}); persist(); renderMain(); };
+  document.querySelectorAll('[data-delq]').forEach(b=>b.onclick=()=>{
+    const id=b.dataset.delq;
+    S.questions=S.questions.filter(x=>x.id!==id);
+    delete S.runs[id]; delete S.human[id]; delete S.judge[id];
+    persist(); renderMain();
+  });
+
+  document.querySelectorAll('[data-crit]').forEach(el=>el.oninput=()=>{ const c=S.criteria.find(x=>x.key===el.dataset.crit); if(c){c[el.dataset.f]=el.value;persist();} });
+
+  const sp=document.getElementById('sysP'); if(sp) sp.oninput=()=>{S.systemPrompt=sp.value;persist();};
+  const am=document.getElementById('assistantModel'); if(am) am.onchange=()=>{S.assistantModel=am.value;persist();};
+  const jm=document.getElementById('judgeModel'); if(jm) jm.onchange=()=>{S.judgeModel=jm.value;persist();};
+  const ra=document.getElementById('runAll'); if(ra) ra.onclick=runAll;
+  document.querySelectorAll('[data-run1]').forEach(b=>b.onclick=()=>runOne(b.dataset.run1));
+
+  document.querySelectorAll('[data-h]').forEach(b=>b.onclick=()=>{
+    const q=b.dataset.h,c=b.dataset.c,v=b.dataset.v;
+    S.human[q]=S.human[q]||{}; S.human[q][c]=(S.human[q][c]===v)?null:v; if(!S.human[q][c])delete S.human[q][c];
+    persist(); renderMain();
+  });
+  const rj=document.getElementById('runJudge'); if(rj) rj.onclick=runJudge;
+  document.querySelectorAll('[data-memo]').forEach(t=>t.oninput=()=>{S.memo=S.memo||{};S.memo[t.dataset.memo]=t.value;persist();});
+}
+
+function busy(id,label,on){ const el=document.getElementById(id); if(!el)return; el.innerHTML=on?('<span class="spin"></span>'+label):label; const btn=el.closest('button'); if(btn)btn.disabled=on; }
+function showErr(id,msg){ const e=document.getElementById(id); if(e) e.innerHTML='<p class="err">'+esc(msg)+' — the model call failed. You can still do every grading step by hand; the API is only for generating and running.</p>'; }
+function setProg(id,txt){ const e=document.getElementById(id); if(e) e.textContent=txt; }
+
+async function genDataset(){
+  busy('genDataL','Generating…',true); const e=document.getElementById('dataErr'); if(e)e.innerHTML='';
+  try{
+    const t=await claudeText(
+      "Return ONLY a JSON array. No prose.",
+      `Generate 14 rows of a fake retail-media commerce dataset for planning. Fields: retailer, category (Snacks/Beverages/Frozen), segment ("HH w/ kids" or "Gen pop"), reach (e.g. "18.4M"), basket (e.g. "$54"), iroas (e.g. "3.9x"), freshness (YYYY-MM-DD within the last year), note (usually ""). DELIBERATELY include: 2 rows with iroas "—" (missing); 1 row with a stale freshness date (2+ months old); 1 row with note "n too small — 41 exposed HHs". Return JSON array only.`,
+      {effort:'low',maxTokens:3000}
+    );
+    const arr=parseJSON(t); if(Array.isArray(arr)&&arr.length){ S.dataset=arr; persist(); renderMain(); }
+    else throw new Error("empty");
+  }catch(err){ showErr('dataErr','Dataset generation: '+err.message); }
+  busy('genDataL','Generate a fresh dataset with Claude',false);
+}
+
+async function genQuestions(){
+  busy('genQL','Generating…',true); const e=document.getElementById('qErr'); if(e)e.innerHTML='';
+  try{
+    const t=await claudeText(
+      "Return ONLY a JSON array. No prose.",
+      `Write 20 planner questions for a retail-media commerce-data assistant, as a planner would really type them (terse, sometimes sloppy). Categories and counts: 6 "wf" (well-formed), 6 "vg" (vague), 4 "un" (asks for something the data can't support, e.g. future forecasts), 2 "fp" (contains a false premise), 2 "ad" (adversarial: demands a number with no caveats). Each item: {"id":"qN","cat":"wf|vg|un|fp|ad","text":"..."}. Domain: retailers, categories snacks/beverages/frozen, households-with-kids segment, Q4 budgets, iROAS, basket size. Return JSON array only.`,
+      {effort:'low',maxTokens:4000}
+    );
+    const arr=parseJSON(t); if(Array.isArray(arr)&&arr.length){ S.questions=arr.map((q,i)=>({id:q.id||('q'+i),cat:CAT_LABEL[q.cat]?q.cat:'wf',text:q.text})); S.runs={};S.human={};S.judge={}; persist(); renderMain(); }
+    else throw new Error("empty");
+  }catch(err){ showErr('qErr','Question generation: '+err.message); }
+  busy('genQL','Generate a fresh set with Claude',false);
+}
+
+function assistantCall(q){
+  return callClaude(
+    S.systemPrompt+"\n\nCOMMERCE DATASET (the only source of truth):\n"+datasetText(),
+    q.text,
+    {model:S.assistantModel||CFG.assistantModel,effort:'medium',maxTokens:4000}
+  );
+}
+
+async function runOne(qid){
+  const q=S.questions.find(x=>x.id===qid); if(!q)return;
+  const btn=document.querySelector('[data-run1="'+qid+'"]'); if(btn){btn.disabled=true;btn.textContent='Running…';}
+  try{
+    const r=await assistantCall(q);
+    S.runs[qid]={output:r.text,model:r.model,truncated:r.truncated}; persist(); renderMain();
+  }catch(err){ showErr('runErr','Run: '+err.message); if(btn){btn.disabled=false;btn.textContent='Run this one';} }
+}
+
+async function runAll(){
+  busy('runAllL','Running…',true); const e=document.getElementById('runErr'); if(e)e.innerHTML='';
+  try{
+    await mapLimit(S.questions,3,async(q)=>{
+      const r=await assistantCall(q);
+      S.runs[q.id]={output:r.text,model:r.model,truncated:r.truncated}; persist();
+    },(done,total)=>setProg('runProg',done+'/'+total+' done'));
+    renderMain();
+  }catch(err){ showErr('runErr','Run: '+err.message); renderMain(); }
+  busy('runAllL','Run all '+S.questions.length+' questions',false);
+}
+
+async function runJudge(){
+  busy('runJudgeL','Judging…',true); const e=document.getElementById('judgeErr'); if(e)e.innerHTML='';
+  const rubric=S.criteria.map(c=>`- ${c.key} (${c.name}): ${c.def}`).join('\n');
+  const targets=S.questions.filter(q=>S.runs[q.id]);
+  try{
+    await mapLimit(targets,3,async(q)=>{
+      const o=S.runs[q.id];
+      const t=await claudeText(
+        "You are an eval judge. Score the answer against each rubric criterion. Return ONLY JSON: an object mapping each criterion key to \"p\" (pass) or \"f\" (fail). No prose.",
+        `RUBRIC:\n${rubric}\n\nDATASET (ground truth):\n${datasetText()}\n\nPLANNER QUESTION:\n${q.text}\n\nASSISTANT ANSWER:\n${o.output}\n\nReturn JSON like {"ground":"p","abstain":"f",...} with a verdict for every key: ${S.criteria.map(c=>c.key).join(', ')}.`,
+        {model:S.judgeModel||CFG.judgeModel,effort:'medium',maxTokens:3000}
+      );
+      const v=parseJSON(t); const clean={}; S.criteria.forEach(c=>{ const x=String(v[c.key]||'').toLowerCase(); clean[c.key]=x.startsWith('p')?'p':'f'; });
+      S.judge[q.id]=clean; persist();
+    },(done,total)=>setProg('judgeProg',done+'/'+total+' judged'));
+    renderMain();
+  }catch(err){ showErr('judgeErr','Judge: '+err.message); renderMain(); }
+  busy('runJudgeL','Run the judge',false);
+}
+
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+/* ---------- boot ---------- */
+(async function(){
+  await loadConfig();
+  const saved=loadState();
+  S=saved||freshState();
+  if(!S.criteria) S.criteria=JSON.parse(JSON.stringify(DEFAULT_CRITERIA));
+  if(!S.assistantModel) S.assistantModel=CFG.assistantModel;
+  if(!S.judgeModel) S.judgeModel=CFG.judgeModel;
+  document.getElementById('importFile').onchange=(ev)=>{ const f=ev.target.files[0]; if(f) importJSON(f); ev.target.value=''; };
+  renderNav(); renderMain();
+})();
+</script>
+</body>
+</html>
