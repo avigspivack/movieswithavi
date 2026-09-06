@@ -123,8 +123,6 @@
   window.initTaxonomy = async function () {
     await loadTax();
     const cat = document.getElementById('categories');
-    const tag = document.getElementById('tags');
     if (cat) attach(cat, 'categories');
-    if (tag) attach(tag, 'tags');
   };
 })();

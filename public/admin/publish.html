@@ -137,9 +137,6 @@ button.ghost { background: #fff; color: var(--ink); border: 2px solid rgba(42,30
     <label for="categories">Categories <em>(comma-separated)</em></label>
     <input autocomplete="off" type="text" id="categories" placeholder="Drama, Foreign" />
 
-    <label for="tags">Tags <em>(comma-separated)</em></label>
-    <input autocomplete="off" type="text" id="tags" placeholder="slow burn, hidden gem, french" />
-
     <label>Poster</label>
     <div class="poster" id="poster-box">
       <img id="poster-preview" style="display:none" alt="" />
@@ -255,7 +252,6 @@ async function submit(asDraft) {
     foodPairing: $('foodPairing').value.trim(),
     trivia: $('trivia').value.trim(),
     categories: $('categories').value.split(',').map(s => s.trim()).filter(Boolean),
-    tags: $('tags').value.split(',').map(s => s.trim()).filter(Boolean),
     deets: $('deets').value.trim(),
     posterBase64: posterData,
     posterExt
