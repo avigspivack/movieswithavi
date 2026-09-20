@@ -351,15 +351,17 @@ app.post('/api/subscribe', (req, res) => {
     const source = okSource(req.body?.source) ? req.body.source : 'homepage';
     subUpsert.run({ email, name, source, day: today(), ts: Date.now() });
 
-    // ── Buttondown handoff goes here ──────────────────────────────────
-    // When a platform is chosen, forward the subscriber and keep the local
-    // row as the source of truth. Example (fire-and-forget, never blocks the
-    // reader's success response):
-    //   if (process.env.BUTTONDOWN_KEY) fetch('https://api.buttondown.email/v1/subscribers', {
-    //     method: 'POST',
-    //     headers: { Authorization: `Token ${process.env.BUTTONDOWN_KEY}`, 'Content-Type': 'application/json' },
-    //     body: JSON.stringify({ email_address: email, metadata: { name } }),
-    //   }).catch(() => {});
+    // ── Buttondown handoff ────────────────────────────────────────────
+    // Local row stays the source of truth; mirror the signup into Buttondown
+    // (the newsletter sender) when a key is configured. Fire-and-forget so it
+    // never blocks or fails the reader's success response.
+    if (process.env.BUTTONDOWN_KEY) {
+      fetch('https://api.buttondown.email/v1/subscribers', {
+        method: 'POST',
+        headers: { Authorization: `Token ${process.env.BUTTONDOWN_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email_address: email, metadata: { name } }),
+      }).catch(() => {});
+    }
     // ──────────────────────────────────────────────────────────────────
 
     res.json({ ok: true });
