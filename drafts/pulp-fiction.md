@@ -6,7 +6,7 @@ ratingNum: 3.97
 ratingText: "It still holds up."
 oneLine: "The interwoven stories of two hitmen, a boxer, and a mob boss in LA."
 whereToWatch: "Everywhere except Netflix - stream away!!"
-categories: []
+categories: ["Great cast", "Great Screenplay", "Oscar Winner", "Comedy"]
 image: "/posters/pulp-fiction.jpg"
 ---
 
