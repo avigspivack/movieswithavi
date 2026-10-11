@@ -31,7 +31,8 @@ input[type=text], textarea {
 input:focus, textarea:focus { outline: none; border-color: var(--red); }
 textarea { resize: vertical; }
 #deets { min-height: 200px; font-size: 16px; }
-#oneLine { min-height: 104px; }   /* double the default field height for more room */
+.wrap-field { resize: none; overflow: hidden; min-height: 52px; }
+#oneLine, #perfectFor, #foodPairing, #categories { min-height: 104px; }   /* double the default field height for more room */
 .row { display: flex; gap: 10px; }
 .row > div { flex: 1; }
 .stars { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
@@ -97,7 +98,7 @@ button.ghost { background: #fff; color: var(--ink); border: 2px solid rgba(42,30
     <div class="marquee">NEW REVIEW · <b id="m-title">Untitled</b></div>
 
     <label for="title">Movie title</label>
-    <input type="text" id="title" placeholder="e.g. Miroirs No. 3" autocomplete="off" required />
+    <textarea class="wrap-field" rows="1" id="title" placeholder="e.g. Miroirs No. 3" autocomplete="off" required></textarea>
     <div class="slugline" id="slugline"></div>
 
     <div class="row">
@@ -107,35 +108,37 @@ button.ghost { background: #fff; color: var(--ink); border: 2px solid rgba(42,30
       </div>
       <div>
         <label for="ratingText">Rating description</label>
-        <input type="text" id="ratingText" placeholder="A must-see film" />
+        <textarea class="wrap-field" rows="1" id="ratingText" placeholder="A must-see film"></textarea>
       </div>
     </div>
 
     <label for="oneLine">One-line summary</label>
-    <input type="text" id="oneLine" placeholder="The hook, in one sentence." required />
+    <textarea class="wrap-field" rows="1" id="oneLine" placeholder="The hook, in one sentence." required></textarea>
 
     <label for="deets">The Deets</label>
     <textarea id="deets" placeholder="The full review. Plain text or Markdown — paragraphs, **bold**, whatever you like." required></textarea>
 
     <label for="perfectFor">Perfect for</label>
-    <input type="text" id="perfectFor" placeholder="A rainy Sunday when you want..." />
+    <textarea class="wrap-field" rows="1" id="perfectFor" placeholder="A rainy Sunday when you want..."></textarea>
 
     <div class="row">
       <div>
         <label for="whereToWatch">Where to watch</label>
-        <input type="text" id="whereToWatch" placeholder="Netflix" />
+        <textarea class="wrap-field" rows="1" id="whereToWatch" placeholder="Netflix"></textarea>
       </div>
       <div>
         <label for="foodPairing">Food pairing</label>
-        <input type="text" id="foodPairing" placeholder="Buttered popcorn and..." />
+        <textarea class="wrap-field" rows="1" id="foodPairing" placeholder="Buttered popcorn and..."></textarea>
       </div>
     </div>
 
+    <div hidden>
     <label for="trivia">Trivia clue <em>(optional — powers the /play game)</em></label>
     <input type="text" id="trivia" placeholder="Guess-the-movie clue, no title. e.g. Cardinals lock themselves away to elect a new pope…" />
+    </div>
 
     <label for="categories">Categories <em>(comma-separated)</em></label>
-    <input autocomplete="off" type="text" id="categories" placeholder="Drama, Foreign" />
+    <textarea class="wrap-field" rows="1" autocomplete="off" id="categories" placeholder="Drama, Foreign"></textarea>
 
     <label>Poster</label>
     <div class="poster" id="poster-box">
@@ -177,6 +180,13 @@ function refresh() {
   $('slugline').textContent = t ? `→ src/content/reviews/${slugify(t)}.md` : '';
 }
 $('title').addEventListener('input', refresh);
+
+// Single-line fields are textareas so long text wraps; grow them as you type and keep Enter from adding newlines.
+document.querySelectorAll('.wrap-field').forEach(el => {
+  const grow = () => { el.style.height = 'auto'; el.style.height = el.scrollHeight + 4 + 'px'; };
+  el.addEventListener('input', () => { if (/\n/.test(el.value)) el.value = el.value.replace(/\s*\n\s*/g, ' '); grow(); });
+  el.addEventListener('keydown', e => { if (e.key === 'Enter') e.preventDefault(); });
+});
 
 // ---- gate (reuses the projection-booth key) ----
 async function tryKey() {
