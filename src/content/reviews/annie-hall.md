@@ -1,6 +1,6 @@
 ---
 title: "Annie Hall"
-date: 2026-10-11
+date: 2026-10-18
 rating: "3.98/4 (aka The OG modern romcom.)"
 ratingNum: 3.98
 ratingText: "The OG modern romcom."
