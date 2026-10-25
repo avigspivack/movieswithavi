@@ -110,7 +110,7 @@ let DAYS = 30;
 const $ = id => document.getElementById(id);
 
 async function load() {
-  const r = await fetch(`/api/stats?key=${encodeURIComponent(KEY)}&days=${DAYS}`);
+  const r = await fetch(`/api/stats?days=${DAYS}`, { headers: { 'x-admin-key': KEY } });
   if (!r.ok) { sessionStorage.removeItem('avi-admin-key'); $('err').textContent = 'Wrong key.'; return false; }
   const d = await r.json();
   $('gate').style.display = 'none'; $('dash').style.display = '';

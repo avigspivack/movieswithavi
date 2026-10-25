@@ -190,7 +190,7 @@ document.querySelectorAll('.wrap-field').forEach(el => {
 
 // ---- gate (reuses the projection-booth key) ----
 async function tryKey() {
-  const r = await fetch(`/api/stats?key=${encodeURIComponent(KEY)}&days=7`);
+  const r = await fetch(`/api/stats?days=7`, { headers: { 'x-admin-key': KEY } });
   if (!r.ok) { sessionStorage.removeItem('avi-admin-key'); return false; }
   $('gate').style.display = 'none'; $('form').style.display = '';
   if (window.initTaxonomy) window.initTaxonomy();

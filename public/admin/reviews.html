@@ -197,7 +197,7 @@ const pretty = s => s.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 async function fetchVault() {
   let r;
   try {
-    r = await fetch(`/api/admin/list?key=${encodeURIComponent(KEY)}`);
+    r = await fetch('/api/admin/list', { headers: { 'x-admin-key': KEY } });
   } catch {
     return { ok: false, auth: false, msg: "Couldn't reach the server — is it up?" };
   }
@@ -314,7 +314,7 @@ function parseReview(raw) {
 async function openEditor(item, isDraft) {
   let raw;
   try {
-    const r = await fetch(`/api/admin/file?key=${encodeURIComponent(KEY)}&path=${encodeURIComponent(item.path)}`);
+    const r = await fetch(`/api/admin/file?path=${encodeURIComponent(item.path)}`, { headers: { 'x-admin-key': KEY } });
     if (!r.ok) throw new Error(`Could not load that review (${r.status}).`);
     ({ raw } = await r.json());
   } catch (e) {
@@ -435,7 +435,7 @@ async function submit(asDraft) {
     CUR.path = d.path || CUR.path; CUR.isDraft = asDraft;
     // refresh the library so badges move to the right section (never let this break the page)
     try {
-      const lr = await fetch(`/api/admin/list?key=${encodeURIComponent(KEY)}`);
+      const lr = await fetch('/api/admin/list', { headers: { 'x-admin-key': KEY } });
       if (lr.ok) {
         const fresh = await lr.json();
         if (fresh && Array.isArray(fresh.published) && Array.isArray(fresh.drafts)) LIB = fresh;
@@ -473,7 +473,7 @@ async function del() {
     showList();
     // best-effort refresh from the server too (never let it break the page)
     try {
-      const lr = await fetch(`/api/admin/list?key=${encodeURIComponent(KEY)}`);
+      const lr = await fetch('/api/admin/list', { headers: { 'x-admin-key': KEY } });
       if (lr.ok) {
         const fresh = await lr.json();
         if (fresh && Array.isArray(fresh.published) && Array.isArray(fresh.drafts)) { LIB = fresh; renderList(); }

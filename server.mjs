@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import express from 'express';
 import Database from 'better-sqlite3';
-import { createHash } from 'node:crypto';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import path from 'node:path';
 
 const PORT = process.env.PORT || 3000;
@@ -35,6 +35,49 @@ CREATE INDEX IF NOT EXISTS s_term ON searches(term);
 `);
 
 const app = express();
+
+// Admin auth. The key travels in an x-admin-key header (or a JSON body field),
+// never the query string, so it stays out of Railway's request logs and browser
+// history. Compared in constant time so it cannot be probed by response timing,
+// and repeated wrong guesses from one address are locked out for a while.
+const FAIL_WINDOW_MS = 15 * 60 * 1000;
+const MAX_FAILS = 10;
+const adminFails = new Map(); // ip -> { n, since }
+
+// The last x-forwarded-for entry is the one Railway's proxy added. Earlier
+// entries come from the client and could be faked to dodge the lockout.
+function clientIp(req) {
+  const hops = String(req.headers['x-forwarded-for'] || '').split(',').map(h => h.trim()).filter(Boolean);
+  return hops.length ? hops[hops.length - 1] : (req.socket.remoteAddress || '');
+}
+
+function keyMatches(supplied) {
+  if (!ADMIN_KEY || typeof supplied !== 'string') return false;
+  const a = Buffer.from(supplied.trim());
+  const b = Buffer.from(ADMIN_KEY);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+// Returns true when the request carries the admin key. Otherwise sends the
+// 401 (or 429 when locked out) itself, using `wrongMsg` as the error text.
+function requireAdmin(req, res, wrongMsg = 'unauthorized') {
+  const ip = clientIp(req);
+  const now = Date.now();
+  const f = adminFails.get(ip);
+  if (f && now - f.since > FAIL_WINDOW_MS) adminFails.delete(ip);
+  const fails = adminFails.get(ip);
+  if (fails && fails.n >= MAX_FAILS) {
+    res.status(429).json({ error: 'Too many wrong keys. Try again in 15 minutes.' });
+    return false;
+  }
+  if (keyMatches(req.headers['x-admin-key'] ?? req.body?.key)) {
+    adminFails.delete(ip);
+    return true;
+  }
+  if (fails) fails.n++; else adminFails.set(ip, { n: 1, since: now });
+  res.status(401).json({ error: wrongMsg });
+  return false;
+}
 // Keep a tight body limit everywhere EXCEPT /api/publish, which carries poster images.
 const smallJson = express.json({ limit: '2kb' });
 app.use((req, res, next) => {
@@ -128,7 +171,7 @@ app.post('/api/publish', express.json({ limit: '12mb' }), async (req, res) => {
   try {
     const b = req.body || {};
     if (!GH_TOKEN || !GH_REPO) return res.status(500).json({ error: 'GITHUB_TOKEN / GITHUB_REPO not set on the server.' });
-    if (!ADMIN_KEY || b.key !== ADMIN_KEY) return res.status(401).json({ error: 'Wrong admin key.' });
+    if (!requireAdmin(req, res, 'Wrong admin key.')) return;
 
     const slug = String(b.slug || '').toLowerCase().replace(/[^a-z0-9-]/g, '');
     if (!slug || !b.title) return res.status(400).json({ error: 'Missing title.' });
@@ -211,7 +254,7 @@ const okAdminPath = (p) => typeof p === 'string' && p.endsWith('.md') && !p.incl
 
 app.get('/api/admin/list', async (req, res) => {
   try {
-    if (!ADMIN_KEY || req.query.key !== ADMIN_KEY) return res.status(401).json({ error: 'unauthorized' });
+    if (!requireAdmin(req, res)) return;
     const [pub, dr] = await Promise.all([ghGetJson('src/content/reviews'), ghGetJson('drafts')]);
     const slim = (arr) => (Array.isArray(arr) ? arr : []).filter(f => f.name.endsWith('.md'))
       .map(f => ({ name: f.name.replace(/\.md$/, ''), path: f.path }));
@@ -221,7 +264,7 @@ app.get('/api/admin/list', async (req, res) => {
 
 app.get('/api/admin/file', async (req, res) => {
   try {
-    if (!ADMIN_KEY || req.query.key !== ADMIN_KEY) return res.status(401).json({ error: 'unauthorized' });
+    if (!requireAdmin(req, res)) return;
     const p = req.query.path;
     if (!okAdminPath(p)) return res.status(400).json({ error: 'bad path' });
     const f = await ghGetJson(p);
@@ -235,7 +278,7 @@ app.post('/api/admin/delete', async (req, res) => {
   try {
     const b = req.body || {};
     if (!GH_TOKEN || !GH_REPO) return res.status(500).json({ error: 'GITHUB_TOKEN / GITHUB_REPO not set on the server.' });
-    if (!ADMIN_KEY || b.key !== ADMIN_KEY) return res.status(401).json({ error: 'Wrong admin key.' });
+    if (!requireAdmin(req, res, 'Wrong admin key.')) return;
     const p = b.path;
     if (!okAdminPath(p)) return res.status(400).json({ error: 'bad path' });
 
@@ -280,7 +323,7 @@ app.post('/api/track', (req, res) => {
 });
 
 app.get('/api/stats', (req, res) => {
-  if (!ADMIN_KEY || req.query.key !== ADMIN_KEY) return res.status(401).json({ error: 'unauthorized' });
+  if (!requireAdmin(req, res)) return;
   const days = Math.min(365, parseInt(req.query.days) || 30);
   const since = new Date(Date.now() - days * 864e5).toISOString().slice(0, 10);
   res.json({
@@ -367,7 +410,7 @@ app.post('/api/subscribe', (req, res) => {
 });
 
 app.get('/api/admin/subscribers', (req, res) => {
-  if (!ADMIN_KEY || req.query.key !== ADMIN_KEY) return res.status(401).json({ error: 'unauthorized' });
+  if (!requireAdmin(req, res)) return;
   res.json({
     count: db.prepare('SELECT COUNT(*) n FROM subscribers').get().n,
     subscribers: db.prepare('SELECT email, name, source, day FROM subscribers ORDER BY ts DESC').all(),
