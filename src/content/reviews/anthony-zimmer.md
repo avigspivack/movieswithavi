@@ -1,6 +1,6 @@
 ---
 title: "Anthony Zimmer"
-date: 2026-10-18
+date: 2026-10-25
 rating: "3.72/4 (aka A fun French thriller.)"
 ratingNum: 3.72
 ratingText: "A fun French thriller."
