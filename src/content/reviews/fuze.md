@@ -1,8 +1,8 @@
 ---
 title: "Fuze"
-date: 2026-11-05
-rating: "3.72/4 (aka A highly entertaining thriller set in London.)"
-ratingNum: 3.72
+date: 2026-11-14
+rating: "3.68/4 (aka A highly entertaining thriller set in London.)"
+ratingNum: 3.68
 ratingText: "A highly entertaining thriller set in London."
 oneLine: "A WWII bomb is discovered in a London construction site."
 perfectFor: "If you enjoy a good thriller, especially those that take place in London."
