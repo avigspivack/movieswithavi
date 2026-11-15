@@ -1,6 +1,6 @@
 ---
 title: "Auction"
-date: 2026-11-14
+date: 2026-11-15
 rating: "3.73/4 (aka An intriguing French story of a lost painting.)"
 ratingNum: 3.73
 ratingText: "An intriguing French story of a lost painting."
