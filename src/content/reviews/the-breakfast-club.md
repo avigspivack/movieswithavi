@@ -1,8 +1,8 @@
 ---
 title: "The Breakfast Club"
 date: 2026-11-22
-rating: "3.98/4 (aka The ultimate high school classic.)"
-ratingNum: 3.98
+rating: "3.99/4 (aka The ultimate high school classic.)"
+ratingNum: 3.99
 ratingText: "The ultimate high school classic."
 oneLine: "An unforgettable day of high school Saturday detention."
 perfectFor: "If it’s time for a rewatch, but certainly if you’ve never seen this absolute rewatchable and quotable gem."
